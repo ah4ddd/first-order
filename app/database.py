@@ -29,8 +29,10 @@ class Base(DeclarativeBase):
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     print("Creating database session...")
     async with AsyncSessionLocal() as session:
-        yield session
-    print("Closing database session...")
+        try:
+            yield session
+        finally:
+            print("Closing database session...")
 
 
 # Alias
