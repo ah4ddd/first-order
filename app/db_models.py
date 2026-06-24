@@ -1,76 +1,81 @@
+from typing import Optional, List
 from sqlalchemy import (
-    Column, Integer, String, Text,
-    ForeignKey, DateTime, UniqueConstraint
+    String, Text, ForeignKey, DateTime, UniqueConstraint
 )
-from sqlalchemy.orm import relationship
+
+# Mapped[...] is the Python Type (The Left Side)
+# mapped_column() is the SQL Configuration (The Right Side)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from .database import Base
 
 
 # get current time
-def utcnow():
+def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    email = Column(String(255), unique=True, nullable=False, index=True)
-    username = Column(String(50), unique=True, nullable=False, index=True)
-    password_hash = Column(String, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=utcnow)
+    # id: int automatically configures Integer and autoincrement=True
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    # Relationships
-    # connect to WatchlistItem. On the WatchlistItem side,
-    # look for an attribute called: user
-    watchlist_items = relationship("WatchlistItem", back_populates="user")
-    notes = relationship("ResearchNote", back_populates="user")
+    # Omitting Optional implies nullable=False automatically
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String)
+
+    # Pass your callable directly to server_default or default
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    # Use explicit type hints for relationships (List["Model"])
+    watchlist_items: Mapped[List["WatchlistItem"]] = relationship(back_populates="user")
+    notes: Mapped[List["ResearchNote"]] = relationship(back_populates="user")
 
 
 class Stock(Base):
     __tablename__ = "stocks"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    symbol = Column(String(20), unique=True, nullable=False, index=True)
-    name = Column(String(255), nullable=False)
-    exchange = Column(String(50), nullable=False)  # NSE, NYSE, XETRA
-    country = Column(String(10), nullable=False)   # IN, US, DE
+    id: Mapped[int] = mapped_column(primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    exchange: Mapped[str] = mapped_column(String(50))  # NSE, NYSE, XETRA
+    country: Mapped[str] = mapped_column(String(10))   # IN, US, DE
 
-    watchlist_items = relationship("WatchlistItem", back_populates="stock")
-    notes = relationship("ResearchNote", back_populates="stock")
+    watchlist_items: Mapped[List["WatchlistItem"]] = relationship(back_populates="stock")
+    notes: Mapped[List["ResearchNote"]] = relationship(back_populates="stock")
 
 
 class WatchlistItem(Base):
     __tablename__ = "watchlist_items"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    # Foreign key is link between tables
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    stock_id = Column(Integer, ForeignKey("stocks.id"), nullable=False)
-    added_at = Column(DateTime(timezone=True), default=utcnow)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id"))
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
-    # One user can't add the same stock twice
     __table_args__ = (UniqueConstraint("user_id", "stock_id"),)
 
-    # connect to User. On the User side,
-    # look for an attribute called: watchlist_items
-    # user <-> watchlist_items
-    # These are opposite ends of the same connection.
-    user = relationship("User", back_populates="watchlist_items")
-    stock = relationship("Stock", back_populates="watchlist_items")
+    user: Mapped["User"] = relationship(back_populates="watchlist_items")
+    stock: Mapped["Stock"] = relationship(back_populates="watchlist_items")
 
 
 class ResearchNote(Base):
     __tablename__ = "research_notes"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    stock_id = Column(Integer, ForeignKey("stocks.id"), nullable=False)
-    title = Column(String(255), nullable=True)
-    content = Column(Text, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=utcnow)
-    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id"))
 
-    user = relationship("User", back_populates="notes")
-    stock = relationship("Stock", back_populates="notes")
+    # Use Optional[str] to explicitly mark this field as nullable=True
+    title: Mapped[Optional[str]] = mapped_column(String(255))
+    content: Mapped[str] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    user: Mapped["User"] = relationship(back_populates="notes")
+    stock: Mapped["Stock"] = relationship(back_populates="notes")
