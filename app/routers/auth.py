@@ -7,7 +7,6 @@ import jwt
 from fastapi.security import OAuth2PasswordRequestForm
 from ..database import DBDep
 from ..db_models import User
-# Added UserLogin schema here
 from ..models import UserRegister, UserResponse, Token
 from ..config import get_settings
 from ..dependencies import CurrentUser

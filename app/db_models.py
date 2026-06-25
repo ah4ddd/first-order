@@ -15,6 +15,18 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+"""
+NOTES:
+Mapped[int] is a Python type hint that SQLAlchemy actually reads.
+Editor now knows user.id is an int, not Any.
+Mapped[str] without Optional automatically means nullable=False.
+Mapped[Optional[str]] automatically means nullable=True.
+No more manually writing nullable=False everywhere —
+the type hint IS the constraint.
+This is the modern way. Every new project should use this.
+"""
+
+
 class User(Base):
     __tablename__ = "users"
 
