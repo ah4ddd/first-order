@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict # Added SettingsConfigDict
 from functools import lru_cache
 
 class Settings(BaseSettings):
@@ -13,9 +13,8 @@ class Settings(BaseSettings):
 
     news_api_key: str = ""
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "UTF-8"
+    # MODERN FIXED BLOCK (Replaces class Config)
+    model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="UTF-8")
 
 @lru_cache()
 def get_settings() -> Settings:
