@@ -9,6 +9,17 @@ from ..dependencies import CurrentUser
 
 router = APIRouter(prefix="/watchlist", tags=["watchlist"])
 
+"""
+# NOTES:
+The one concept to explain — selectinload:
+When you fetch a WatchlistItem, SQLAlchemy by default does NOT automatically load the related Stock object.
+If you try to access item.stock without loading it first, you get a lazy loading error in async mode.
+selectinload(WatchlistItem.stock) tells SQLAlchemy: "when you fetch WatchlistItems,
+also fetch their related Stock objects in a second efficient query."
+Two queries total, but your response has full stock data.
+This is how you handle relationships in async SQLAlchemy — always explicit, never lazy.
+"""
+
 
 @router.get("/", response_model=list[WatchlistItemResponse])
 async def get_watchlist(current_user: CurrentUser, db: DBDep):
