@@ -1,30 +1,41 @@
 from fastapi import APIRouter, HTTPException
-# yfinance works by pretending to be a browser
-# This process is called scraping or more accurately: Unofficial API access
 import yfinance as yf
 from datetime import datetime, timezone
 from typing import Any
+import asyncio
 
 router = APIRouter(prefix="/market", tags=["market"])
 
-# Simple in-memory cache: {symbol: {"data": {...}, "cached_at": datetime}}
+# In-memory cache #
+# dict structure: {symbol: {"data": {...}, "cached_at": datetime}}
+# Why dict and not Redis? Because Redis requires a running server and costs money.
+# For a portfolio project with light traffic, a module-level dict is perfectly fine.
+# These dicts live for the entire lifetime of the server process.
 _price_cache: dict[str, dict] = {}
 _news_cache: dict[str, dict] = {}
+_overview_cache: dict[str, Any] = {}  # single cache entry for the overview
 
-CACHE_TTL_SECONDS = 60  # price cache lives 60 seconds
-NEWS_CACHE_TTL_SECONDS = 300  # news cache lives 5 minutes
+PRICE_TTL = 60        # 60 seconds — price changes but not every second
+NEWS_TTL = 300        # 5 minutes — news doesn't change that fast
+OVERVIEW_TTL = 120    # 2 minutes — indices refresh slightly faster
 
 
-def _is_cache_valid(cache: dict, symbol: str, ttl: int) -> bool:
-    """Check if cached data exists and hasn't expired."""
-    if symbol not in cache:
+# Helpers #
+def _is_cache_valid(cache: dict, key: str, ttl: int) -> bool:
+    """True if cache[key] exists and was set less than ttl seconds ago."""
+    if key not in cache:
         return False
-    age = (datetime.now(timezone.utc) - cache[symbol]["cached_at"]).total_seconds()
+    age = (datetime.now(timezone.utc) - cache[key]["cached_at"]).total_seconds()
     return age < ttl
 
 
 def _safe_get(data: dict, *keys: str, default: Any = None) -> Any:
-    """Safely get a value from a dict, returning default if missing or None."""
+    """
+    Try each key in order, return first non-None value found.
+    Why: yfinance returns different keys for different exchanges.
+    US stocks have 'regularMarketPrice'. Some others only have 'currentPrice'.
+    This handles all variations without crashing.
+    """
     for key in keys:
         val = data.get(key)
         if val is not None:
@@ -32,80 +43,106 @@ def _safe_get(data: dict, *keys: str, default: Any = None) -> Any:
     return default
 
 
+def _fetch_ticker_info(symbol: str) -> dict:
+    """
+    Synchronous yfinance call — must be wrapped with asyncio.to_thread.
+
+    Why separate function?
+    asyncio.to_thread needs a plain callable with no async.
+    yfinance is synchronous (blocking) — it opens an HTTP connection,
+    waits for Yahoo's response, parses HTML. Doing this directly inside
+    an async def blocks the entire event loop. to_thread pushes it to
+    a threadpool so the event loop stays free to handle other requests.
+    """
+    ticker = yf.Ticker(symbol)
+    return ticker.info
+
+
+def _fetch_ticker_news(symbol: str) -> list:
+    """Synchronous news fetch - same reason as above."""
+    ticker = yf.Ticker(symbol)
+    return ticker.news or []
+
+
+# Exchange suffix reference
 """
-# NOTES: Why some Indian stocks fail?
-Because Yahoo uses exchange suffixes.
-US:
-    AAPL
-    META
-    NVDA
+Yahoo Finance symbol suffixes by market:
 
-India NSE:
-    RELIANCE.NS
-    TCS.NS
-    INFY.NS
-    HDFCBANK.NS
+INDIA
+    NSE:    .NS   (RELIANCE.NS, TCS.NS, INFY.NS)
+    BSE:    .BO   (RELIANCE.BO) — usually same price, NSE preferred
 
-BSE:
-    RELIANCE.BO
-    TCS.BO
+USA
+    No suffix needed (AAPL, MSFT, NVDA, META)
 
-If you do: RELIANCE
-Yahoo searches US exchange first.
+GERMANY
+    XETRA:  .DE   (VOW3.DE, SAP.DE, BMW.DE)
 
-Result: not found
+JAPAN
+    TSE:    .T    (7203.T = Toyota, 6758.T = Sony)
 
-Examples:
-✅ Works:
-    SBIN.NS
-    BEL.NS
-    HAL.NS
-    IRFC.NS
-    IREDA.NS
+UK
+    LSE:    .L    (SHEL.L, HSBA.L, BP.L)
 
-❌ Doesn't:
-    SBIN
-    BEL
-    HAL
-    IRFC
-    IREDA
+HONG KONG
+    HKEX:   .HK   (0700.HK = Tencent, 9988.HK = Alibaba)
 
-There is another issue.
-Some Indian stocks:
-    have bad Yahoo coverage
-    have delayed data
-    have no news feed
-    have incomplete metadata
+CHINA (mainland)
+    Shanghai: .SS (600519.SS = Kweichow Moutai, 601398.SS = ICBC)
+    Shenzhen: .SZ (000001.SZ = Ping An Bank)
 
-Especially:
-    SME stocks
-    microcaps
-    recently listed companies
+TAIWAN
+    TWSE:   .TW   (2330.TW = TSMC, 2317.TW = Foxconn)
+
+SOUTH KOREA
+    KRX:    .KS   (005930.KS = Samsung, 000660.KS = SK Hynix)
+
+FRANCE / EURONEXT
+    Euronext Paris: .PA  (MC.PA = LVMH, AI.PA = Air Liquide, OR.PA = L'Oreal)
+    Euronext Amsterdam: .AS (ASML.AS = ASML, HEIA.AS = Heineken)
+
+CANADA
+    TSX:    .TO   (RY.TO = Royal Bank, SU.TO = Suncor)
+    TSXV:   .V    (venture exchange, small caps)
+
+KNOWN LIMITATIONS
+    SME stocks on NSE/BSE: incomplete or missing data
+    Recently listed companies: no historical data yet
+    Microcaps across all markets: sparse coverage
+    Chinese ADRs traded in US have no suffix (BABA, JD, PDD)
 """
+
+
 @router.get("/price/{symbol}")
 async def get_stock_price(symbol: str):
     """
-    Get live price data for a stock symbol.
-    Works for any yfinance-supported symbol:
-    Indian: RELIANCE.NS | US: AAPL | German: VOW3.DE | Japanese: 7203.T
+    Live price data for any yfinance-supported symbol.
+
+    Examples:
+        /market/price/AAPL          US — Apple
+        /market/price/RELIANCE.NS   India NSE — Reliance
+        /market/price/2330.TW       Taiwan — TSMC
+        /market/price/005930.KS     Korea — Samsung
+        /market/price/600519.SS     China Shanghai — Moutai
+        /market/price/ASML.AS       Euronext — ASML
+        /market/price/RY.TO         Canada — Royal Bank
+        /market/price/MC.PA         France — LVMH
     """
     symbol = symbol.upper()
 
-    # Return cached data if still fresh
-    if _is_cache_valid(_price_cache, symbol, CACHE_TTL_SECONDS):
+    if _is_cache_valid(_price_cache, symbol, PRICE_TTL):
         return {**_price_cache[symbol]["data"], "cached": True}
 
     try:
-        ticker = yf.Ticker(symbol) # create an object
-        info = ticker.info # where internet request happens
+        # Run blocking yfinance call in threadpool — keeps event loop free
+        info = await asyncio.to_thread(_fetch_ticker_info, symbol)
 
-        # yfinance returns {"trailingPegRatio": None} for invalid symbols
-        # The clearest signal a symbol is invalid is missing regularMarketPrice
         price = _safe_get(info, "regularMarketPrice", "currentPrice", "previousClose")
         if price is None:
             raise HTTPException(
                 status_code=404,
-                detail=f"Symbol '{symbol}' not found or market is closed"
+                detail=f"Symbol '{symbol}' not found or no price data available. "
+                       f"Tip: Indian stocks need .NS suffix (e.g. RELIANCE.NS)"
             )
 
         data = {
@@ -116,57 +153,47 @@ async def get_stock_price(symbol: str):
             "change": _safe_get(info, "regularMarketChange", default=0),
             "change_percent": _safe_get(info, "regularMarketChangePercent", default=0),
             "volume": _safe_get(info, "regularMarketVolume", default=0),
-            "market_cap": _safe_get(info, "marketCap", default=None),
-            "day_high": _safe_get(info, "regularMarketDayHigh", default=None),
-            "day_low": _safe_get(info, "regularMarketDayLow", default=None),
-            "fifty_two_week_high": _safe_get(info, "fiftyTwoWeekHigh", default=None),
-            "fifty_two_week_low": _safe_get(info, "fiftyTwoWeekLow", default=None),
-            "exchange": _safe_get(info, "exchange", "fullExchangeName", default=None),
+            "market_cap": _safe_get(info, "marketCap"),
+            "day_high": _safe_get(info, "regularMarketDayHigh"),
+            "day_low": _safe_get(info, "regularMarketDayLow"),
+            "fifty_two_week_high": _safe_get(info, "fiftyTwoWeekHigh"),
+            "fifty_two_week_low": _safe_get(info, "fiftyTwoWeekLow"),
+            "exchange": _safe_get(info, "exchange", "fullExchangeName"),
             "market_state": _safe_get(info, "marketState", default="UNKNOWN"),
+            "sector": _safe_get(info, "sector"),
+            "industry": _safe_get(info, "industry"),
             "cached": False,
             "fetched_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        # Store in cache
-        _price_cache[symbol] = {
-            "data": data,
-            "cached_at": datetime.now(timezone.utc)
-        }
-
+        _price_cache[symbol] = {"data": data, "cached_at": datetime.now(timezone.utc)}
         return data
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Failed to fetch data for {symbol}: {str(e)}"
-        )
+        raise HTTPException(status_code=503, detail=f"Failed to fetch {symbol}: {str(e)}")
 
 
 @router.get("/news/{symbol}")
 async def get_stock_news(symbol: str):
     """
-    Get recent news for a stock symbol.
-    Uses yfinance's built-in news feed — no API key required.
+    Recent news headlines for a stock symbol.
+    Uses yfinance built-in news — no API key required.
     """
     symbol = symbol.upper()
 
-    if _is_cache_valid(_news_cache, symbol, NEWS_CACHE_TTL_SECONDS):
+    if _is_cache_valid(_news_cache, symbol, NEWS_TTL):
         return {"symbol": symbol, "news": _news_cache[symbol]["data"], "cached": True}
 
     try:
-        ticker = yf.Ticker(symbol)
-        # returns raw ugly Yahoo data
-        raw_news = ticker.news  # list of news dicts
+        raw_news = await asyncio.to_thread(_fetch_ticker_news, symbol)
 
         if not raw_news:
             return {"symbol": symbol, "news": [], "cached": False}
 
-        # Clean and normalize the news structure
-        # Take inconsistent external data & convert it into predictable structure
         news = []
-        for item in raw_news[:10]:  # max 10 headlines
+        for item in raw_news[:10]:
             content = item.get("content", {})
             news.append({
                 "title": content.get("title") or item.get("title", "No title"),
@@ -182,51 +209,88 @@ async def get_stock_news(symbol: str):
                 ),
             })
 
-        _news_cache[symbol] = {
-            "data": news,
-            "cached_at": datetime.now(timezone.utc)
-        }
-
+        _news_cache[symbol] = {"data": news, "cached_at": datetime.now(timezone.utc)}
         return {"symbol": symbol, "news": news, "cached": False}
 
     except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Failed to fetch news for {symbol}: {str(e)}"
-        )
+        raise HTTPException(status_code=503, detail=f"Failed to fetch news for {symbol}: {str(e)}")
 
 
 @router.get("/overview")
 async def market_overview():
     """
-    Quick snapshot of major market indices.
-    Shows the health of each market at a glance.
+    Live snapshot of major global indices.
+    All indices fetched in parallel — total time ~500ms regardless of count.
     """
+    # Single cache entry for the whole overview response
+    if _is_cache_valid(_overview_cache, "overview", OVERVIEW_TTL):
+        return {**_overview_cache["overview"]["data"], "cached": True}
+
     indices = {
-        "India (NIFTY 50)": "^NSEI",
-        "India (SENSEX)": "^BSESN",
-        "USA (S&P 500)": "^GSPC",
-        "USA (NASDAQ)": "^IXIC",
-        "Germany (DAX)": "^GDAXI",
-        "Japan (Nikkei)": "^N225",
-        "UK (FTSE 100)": "^FTSE",
-        "Hong Kong (HSI)": "^HSI",
+        # South Asia
+        "India (NIFTY 50)":     "^NSEI",
+        "India (SENSEX)":       "^BSESN",
+        # North America
+        "USA (S&P 500)":        "^GSPC",
+        "USA (NASDAQ)":         "^IXIC",
+        "Canada (TSX)":         "^GSPTSE",
+        # Europe
+        "Germany (DAX)":        "^GDAXI",
+        "UK (FTSE 100)":        "^FTSE",
+        "France (CAC 40)":      "^FCHI",
+        "Euronext (AEX)":       "^AEX",
+        # Asia Pacific
+        "Japan (Nikkei 225)":   "^N225",
+        "Hong Kong (HSI)":      "^HSI",
+        "China (Shanghai)":     "000001.SS",
+        "Taiwan (TWII)":        "^TWII",
+        "South Korea (KOSPI)":  "^KS11",
     }
 
-    results = {}
-    for market_name, symbol in indices.items():
+    async def fetch_one(market_name: str, symbol: str) -> tuple[str, dict]:
+        """
+        Fetch a single index inside a coroutine.
+        Returns (market_name, result_dict) tuple so we can rebuild the dict after gather.
+
+        Why tuple return?
+        asyncio.gather runs all coroutines simultaneously and returns a list
+        of results in the same order. We need to know WHICH result belongs
+        to WHICH market name, so we return both together.
+        """
         try:
-            info = yf.Ticker(symbol).info
+            info = await asyncio.to_thread(_fetch_ticker_info, symbol)
             price = _safe_get(info, "regularMarketPrice", "previousClose")
-            results[market_name] = {
+            return market_name, {
                 "symbol": symbol,
                 "price": price,
-                "change_percent": _safe_get(
-                    info, "regularMarketChangePercent", default=0
+                "change_percent": round(
+                    _safe_get(info, "regularMarketChangePercent", default=0), 4
                 ),
                 "currency": _safe_get(info, "currency", default=""),
+                "market_state": _safe_get(info, "marketState", default="UNKNOWN"),
             }
         except Exception:
-            results[market_name] = {"symbol": symbol, "error": "unavailable"}
+            return market_name, {"symbol": symbol, "error": "unavailable"}
 
-    return {"overview": results, "fetched_at": datetime.now(timezone.utc).isoformat()}
+    # asyncio.gather fires ALL fetch_one coroutines at the same time.
+    # Instead of: fetch India (500ms) → fetch USA (500ms) → ... = 7000ms total
+    # You get:    fetch all simultaneously = ~500ms total (slowest single call)
+    results_list = await asyncio.gather(
+        *[fetch_one(name, sym) for name, sym in indices.items()]
+    )
+
+    # Rebuild into dict from list of (name, data) tuples
+    overview_data = {name: data for name, data in results_list}
+
+    response = {
+        "overview": overview_data,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "cached": False,
+    }
+
+    _overview_cache["overview"] = {
+        "data": response,
+        "cached_at": datetime.now(timezone.utc)
+    }
+
+    return response
