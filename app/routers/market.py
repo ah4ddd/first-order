@@ -32,6 +32,56 @@ def _safe_get(data: dict, *keys: str, default: Any = None) -> Any:
     return default
 
 
+"""
+# NOTES: Why some Indian stocks fail?
+Because Yahoo uses exchange suffixes.
+US:
+    AAPL
+    META
+    NVDA
+
+India NSE:
+    RELIANCE.NS
+    TCS.NS
+    INFY.NS
+    HDFCBANK.NS
+
+BSE:
+    RELIANCE.BO
+    TCS.BO
+
+If you do: RELIANCE
+Yahoo searches US exchange first.
+
+Result: not found
+
+Examples:
+✅ Works:
+    SBIN.NS
+    BEL.NS
+    HAL.NS
+    IRFC.NS
+    IREDA.NS
+
+❌ Doesn't:
+    SBIN
+    BEL
+    HAL
+    IRFC
+    IREDA
+
+There is another issue.
+Some Indian stocks:
+    have bad Yahoo coverage
+    have delayed data
+    have no news feed
+    have incomplete metadata
+
+Especially:
+    SME stocks
+    microcaps
+    recently listed companies
+"""
 @router.get("/price/{symbol}")
 async def get_stock_price(symbol: str):
     """
@@ -107,12 +157,14 @@ async def get_stock_news(symbol: str):
 
     try:
         ticker = yf.Ticker(symbol)
+        # returns raw ugly Yahoo data
         raw_news = ticker.news  # list of news dicts
 
         if not raw_news:
             return {"symbol": symbol, "news": [], "cached": False}
 
         # Clean and normalize the news structure
+        # Take inconsistent external data & convert it into predictable structure
         news = []
         for item in raw_news[:10]:  # max 10 headlines
             content = item.get("content", {})
