@@ -17,8 +17,12 @@ _overview_cache: dict[str, Any] = {}  # single cache entry for the overview
 
 PRICE_TTL = 60        # 60 seconds — price changes but not every second
 NEWS_TTL = 300        # 5 minutes — news doesn't change that fast
-OVERVIEW_TTL = 120    # 2 minutes — indices refresh slightly faster
+OVERVIEW_TTL = 120    # 2 minutes — indices don't need ultra-fresh updates
 
+# Why the _ underscore?
+# This is one of Python's biggest conventions.
+# Single underscore means:
+# Internal use only or Private-ish.
 
 # Helpers #
 def _is_cache_valid(cache: dict, key: str, ttl: int) -> bool:
