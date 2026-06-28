@@ -35,7 +35,32 @@ STOCKS = [
     {"symbol": "HSBA.L", "name": "HSBC Holdings", "exchange": "LSE", "country": "UK"},
     # Hong Kong (HKEX)
     {"symbol": "0700.HK", "name": "Tencent Holdings", "exchange": "HKEX", "country": "HK"},
-]
+
+    # Taiwan
+    {"symbol": "2330.TW", "name": "TSMC", "exchange": "TWSE", "country": "TW"},
+    {"symbol": "2317.TW", "name": "Foxconn", "exchange": "TWSE", "country": "TW"},
+
+    # South Korea
+    {"symbol": "005930.KS", "name": "Samsung Electronics", "exchange": "KRX", "country": "KR"},
+    {"symbol": "000660.KS", "name": "SK Hynix", "exchange": "KRX", "country": "KR"},
+
+    # China (mainland ADR-style on Yahoo)
+    {"symbol": "600519.SS", "name": "Kweichow Moutai", "exchange": "SSE", "country": "CN"},
+    {"symbol": "BABA", "name": "Alibaba Group", "exchange": "NYSE", "country": "CN"},
+
+    # France / Euronext
+    {"symbol": "MC.PA", "name": "LVMH", "exchange": "Euronext Paris", "country": "FR"},
+    {"symbol": "ASML.AS", "name": "ASML Holding", "exchange": "Euronext Amsterdam", "country": "NL"},
+    {"symbol": "AI.PA", "name": "Air Liquide", "exchange": "Euronext Paris", "country": "FR"},
+
+    # Canada
+    {"symbol": "RY.TO", "name": "Royal Bank of Canada", "exchange": "TSX", "country": "CA"},
+    {"symbol": "SU.TO", "name": "Suncor Energy", "exchange": "TSX", "country": "CA"},
+
+    # UK additions
+    {"symbol": "BP.L", "name": "BP PLC", "exchange": "LSE", "country": "UK"},
+    {"symbol": "AZN.L", "name": "AstraZeneca", "exchange": "LSE", "country": "UK"},
+    ]
 
 
 async def seed():
