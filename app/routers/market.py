@@ -281,7 +281,7 @@ async def market_overview():
     # You get:    fetch all simultaneously = ~500ms total (slowest single call)
     results_list = await asyncio.gather(
         *[fetch_one(name, sym) for name, sym in indices.items()]
-    )
+    ) # complexity: O(1)
 
     # Rebuild into dict from list of (name, data) tuples
     overview_data = {name: data for name, data in results_list}
