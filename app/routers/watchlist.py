@@ -82,12 +82,4 @@ async def remove_from_watchlist(stock_id: int, current_user: CurrentUser, db: DB
     await db.commit()
 
 
-@router.get("/stocks/search", tags=["stocks"])
-async def search_stocks(q: str, db: DBDep):
-    """Search stocks by symbol or name. Public endpoint, no auth needed."""
-    result = await db.execute(
-        select(Stock).where(
-            Stock.symbol.ilike(f"%{q}%") | Stock.name.ilike(f"%{q}%")
-        ).limit(20)
-    )
-    return result.scalars().all()
+

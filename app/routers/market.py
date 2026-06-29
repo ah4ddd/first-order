@@ -1,8 +1,12 @@
 from fastapi import APIRouter, HTTPException
+from sqlalchemy import select
 import yfinance as yf
 from datetime import datetime, timezone
 from typing import Any
 import asyncio
+
+from ..database import DBDep
+from ..db_models import Stock
 
 router = APIRouter(prefix="/market", tags=["market"])
 
@@ -115,6 +119,17 @@ KNOWN LIMITATIONS
     Microcaps across all markets: sparse coverage
     Chinese ADRs traded in US have no suffix (BABA, JD, PDD)
 """
+
+
+@router.get("/stocks/search")
+async def search_stocks(q: str, db: DBDep):
+    """Search stocks by symbol or name. Public endpoint, no auth needed."""
+    result = await db.execute(
+        select(Stock).where(
+            Stock.symbol.ilike(f"%{q}%") | Stock.name.ilike(f"%{q}%")
+        ).limit(20)
+    )
+    return result.scalars().all()
 
 
 @router.get("/price/{symbol}")
