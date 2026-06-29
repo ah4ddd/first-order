@@ -1,5 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict # Added SettingsConfigDict
 from functools import lru_cache
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     database_url: str
@@ -14,7 +17,10 @@ class Settings(BaseSettings):
     news_api_key: str = ""
 
     # MODERN FIXED BLOCK (Replaces class Config)
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="UTF-8")
+    model_config = SettingsConfigDict(
+        env_file=BASE_DIR / ".env",
+        env_file_encoding="UTF-8"
+        )
 
 @lru_cache()
 def get_settings() -> Settings:

@@ -1,7 +1,7 @@
 import sys
 from os.path import dirname, abspath
 
-sys.path.insert(0, dirname(dirname(abspath(__file__))))
+sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 
 import asyncio
 from logging.config import fileConfig
@@ -11,8 +11,8 @@ from alembic import context
 
 # 1. FIX: Absolute imports instead of relative dots.
 # Make sure your project root is in your PYTHONPATH when running alembic.
-from db_models import Base
-from config import get_settings
+from app.db_models import Base # type: ignore
+from app.config import get_settings # type: ignore
 
 # This is the Alembic Config object
 config = context.config
