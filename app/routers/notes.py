@@ -2,14 +2,30 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from datetime import datetime, timezone
-
+import asyncio
 from ..database import DBDep
 from ..db_models import ResearchNote
 from ..models import NoteCreate, NoteUpdate, NoteResponse
 from ..dependencies import CurrentUser
 from ..utils import get_or_create_stock
+from .market import _fetch_ticker_info
 
 router = APIRouter(prefix="/notes", tags=["notes"])
+
+
+@router.get("/", response_model=list[NoteResponse])
+async def get_all_my_notes(current_user: CurrentUser, db: DBDep):
+    """
+    Get ALL research notes for the current user across all stocks.
+    Useful for a "my research" dashboard view.
+    """
+    result = await db.execute(
+        select(ResearchNote)
+        .where(ResearchNote.user_id == current_user.id)
+        .options(selectinload(ResearchNote.stock))
+        .order_by(ResearchNote.updated_at.desc())
+    )
+    return result.scalars().all()
 
 
 @router.post("/{symbol}", response_model=NoteResponse, status_code=201)
@@ -22,20 +38,35 @@ async def create_note(symbol: str, note_data: NoteCreate, current_user: CurrentU
     write notes about ANY Yahoo Finance symbol, not just pre-seeded ones.
 
     Examples:
-        POST /notes/RELIANCE.NS
+        POST /notes/HDFCBANK.NS
         POST /notes/AAPL
         POST /notes/2330.TW
         POST /notes/005930.KS
         POST /notes/ASML.AS
     """
-    # This handles both "stock exists" and "stock doesn't exist" cases
     stock = await get_or_create_stock(symbol, db)
+
+    # Attempt to capture current price — non-blocking, fails silently
+    price_at_creation = None
+    currency = None
+    try:
+        info = await asyncio.to_thread(_fetch_ticker_info, symbol.upper())
+        price_at_creation = (
+            info.get("regularMarketPrice")
+            or info.get("currentPrice")
+            or info.get("previousClose")
+        )
+        currency = info.get("currency")
+    except Exception:
+        pass  # price capture failing should never block note creation
 
     note = ResearchNote(
         user_id=current_user.id,
         stock_id=stock.id,
         title=note_data.title,
         content=note_data.content,
+        price_at_creation=price_at_creation,
+        currency=currency,
     )
     db.add(note)
     await db.commit()
@@ -48,17 +79,6 @@ async def create_note(symbol: str, note_data: NoteCreate, current_user: CurrentU
     )
     return result.scalar_one()
 
-
-@router.get("/", response_model=list[NoteResponse])
-async def get_all_my_notes(current_user: CurrentUser, db: DBDep):
-    """All notes by the current user, newest first."""
-    result = await db.execute(
-        select(ResearchNote)
-        .where(ResearchNote.user_id == current_user.id)
-        .options(selectinload(ResearchNote.stock))
-        .order_by(ResearchNote.updated_at.desc())
-    )
-    return result.scalars().all()
 
 
 @router.get("/stock/{symbol}", response_model=list[NoteResponse])
