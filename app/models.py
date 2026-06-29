@@ -64,6 +64,8 @@ class NoteResponse(BaseModel):
     stock: StockResponse
     title: str | None
     content: str
+    price_at_creation: float | None = None
+    currency: str | None = None
     created_at: datetime
     updated_at: datetime
 

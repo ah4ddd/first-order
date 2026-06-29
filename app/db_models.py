@@ -79,10 +79,12 @@ class ResearchNote(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id"))
-
-    # Use Optional[str] to explicitly mark this field as nullable=True
     title: Mapped[Optional[str]] = mapped_column(String(255))
     content: Mapped[str] = mapped_column(Text)
+
+    # Price snapshot at the moment of note creation
+    price_at_creation: Mapped[Optional[float]] = mapped_column(default=None)
+    currency: Mapped[Optional[str]] = mapped_column(String(10), default=None)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
