@@ -3,6 +3,8 @@
 # database so users can reference existing stock
 # records instead of creating arbitrary ticker symbols themselves.
 
+# might not need file this as much because of yfinanace create update
+
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import AsyncSessionLocal

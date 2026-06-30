@@ -72,7 +72,7 @@ def _fetch_ticker_news(symbol: str) -> list:
     return ticker.news or []
 
 
-# Exchange suffix reference
+# Exchange suffix reference #
 """
 Yahoo Finance symbol suffixes by market:
 
