@@ -10,7 +10,7 @@ from ..db_models import Stock
 
 router = APIRouter(prefix="/market", tags=["market"])
 
-# In-memory cache #
+## In-memory cache ##
 # dict structure: {symbol: {"data": {...}, "cached_at": datetime}}
 # Why dict and not Redis? Because Redis requires a running server and costs money.
 # For a portfolio project with light traffic, a module-level dict is perfectly fine.
