@@ -1,3 +1,21 @@
+# Instructions for building an image
+# Docker reads this file and creates an image.
+# When Docker reads the Dockerfile and builds it:
+#    docker build -t myapp .
+# Docker creates an image.
+# This image is now a packaged snapshot
+# Docker takes the image and says:
+#    Start it.
+#    Allocate memory.
+#    Create processes.
+#    Run python main.py.
+# Now application is actually alive.
+# That living running thing is A container.
+
+# Dockerfile = source code
+# Image = compiled executable
+# Container = process running in RAM
+
 # ── Base Image ────────────────────────────────────────────────────────────────
 # We start from an official Python image from Docker Hub.
 # python:3.12-slim means Python 3.12 on a minimal Debian Linux.
