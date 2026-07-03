@@ -1,0 +1,16 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.git/
+.gitignore
+*.md
+.pytest_cache/
+.vscode/
+.idea/
+
+# Why this matters: Without .dockerignore, COPY . . copies entire venv/ folder into the image.
+# That's thousands of files, hundreds of megabytes,
+# and they're useless inside the container because Docker installs dependencies fresh from requirements.txt.
+# The .env file you never want inside an image — environment variables go in as runtime config, not baked into the image.

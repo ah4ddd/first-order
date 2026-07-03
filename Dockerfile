@@ -2,7 +2,7 @@
 # Docker reads this file and creates an image.
 # When Docker reads the Dockerfile and builds it:
 #    docker build -t myapp .
-# Docker creates an image.
+# Docker creates an image
 # This image is now a packaged snapshot
 # Docker takes the image and says:
 #    Start it.
