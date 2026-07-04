@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     # MODERN FIXED BLOCK (Replaces class Config)
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
-        env_file_encoding="UTF-8"
+        env_file_encoding="UTF-8",
+        extra="ignore"
         )
 
 @lru_cache()
