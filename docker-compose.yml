@@ -4,9 +4,6 @@
 #    ↓ create
 # Multiple containers
 
-# Version of docker-compose file format
-version: "3.9"
-
 services:
 
     # ── FastAPI Application ────────────────────────────────────────────────────
