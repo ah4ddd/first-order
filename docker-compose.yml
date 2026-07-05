@@ -6,66 +6,66 @@
 
 services:
 
-    # ── FastAPI Application ────────────────────────────────────────────────────
-    api:
-        # Build from the Dockerfile in the current directory
-        build: .
+  # ── FastAPI Application ────────────────────────────────────────────────────
+  api:
+    # Build from the Dockerfile in the current directory
+    build: .
 
-        # Map port 8000 on your machine to port 8000 inside the container
-        # Format: "host_port:container_port"
-        # localhost:8000 on your machine → port 8000 inside the api container
-        ports:
-            - "8000:8000"
+    # Map port 8000 on your machine to port 8000 inside the container
+    # Format: "host_port:container_port"
+    # localhost:8000 on your machine → port 8000 inside the api container
+    ports:
+      - "8000:8000"
 
-        # Load environment variables from your .env file
-        # The container gets all your DATABASE_URL, SECRET_KEY etc.
-        # Note: DATABASE_URL must use "db" not "localhost" as the host
-        env_file:
-            - .env
+    # Load environment variables from your .env file
+    # The container gets all your DATABASE_URL, SECRET_KEY etc.
+    # Note: DATABASE_URL must use "db" not "localhost" as the host
+    env_file:
+      - .env
 
-        # Don't start the api container until the db container is running
-        depends_on:
-            - db
+    # Don't start the api container until the db container is running
+    depends_on:
+      - db
 
-        # Mount your local code directory into the container at /app
-        # This means changes you make to files on your machine
-        # immediately appear inside the container WITHOUT rebuilding.
-        # Only useful in development — remove this for production.
-        volumes:
-            - .:/app
+    # Mount your local code directory into the container at /app
+    # This means changes you make to files on your machine
+    # immediately appear inside the container WITHOUT rebuilding.
+    # Only useful in development — remove this for production.
+    volumes:
+      - .:/app
 
-    # ── PostgreSQL Database ────────────────────────────────────────────────────
-    db:
-        # Use the official PostgreSQL 16 image, alpine variant (tiny)
-        image: postgres:16-alpine
+  # ── PostgreSQL Database ────────────────────────────────────────────────────
+  db:
+    # Use the official PostgreSQL 16 image, alpine variant (tiny)
+    image: postgres:16-alpine
 
-        # These become environment variables inside the postgres container.
-        # PostgreSQL's official image reads these to set up the database on first run.
-        environment:
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
+    # These become environment variables inside the postgres container.
+    # PostgreSQL's official image reads these to set up the database on first run.
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
 
-        # Map port 5432 so you can still connect with psql or pgAdmin from your machine
-        ports:
-            - "5432:5432"
+    # Map port 5432 so you can still connect with psql or pgAdmin from your machine
+    ports:
+      - "5433:5432"
 
-        # Named volume — persists database data between container restarts.
-        # Without this: every time you restart the db container, your data is gone.
-        # With this: data survives restarts, rebuilds, everything.
-        # Docker manages the actual storage location on your machine.
-        volumes:
-            - postgres_data:/var/lib/postgresql/data
+    # Named volume — persists database data between container restarts.
+    # Without this: every time you restart the db container, your data is gone.
+    # With this: data survives restarts, rebuilds, everything.
+    # Docker manages the actual storage location on your machine.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
 # Declare the named volume so Docker knows to create and manage it
 volumes:
-    postgres_data:
+  postgres_data:
 
-        # docker compose up:
-        # 1. Build api image from Dockerfile
-        # 2. Create api container
-        # 3. Download postgres image
-        # 4. Create db container
-        # 5. Create network
-        # 6. Connect api and db to that network
-        # 7. Start both containers
+    # docker compose up:
+    # 1. Build api image from Dockerfile
+    # 2. Create api container
+    # 3. Download postgres image
+    # 4. Create db container
+    # 5. Create network
+    # 6. Connect api and db to that network
+    # 7. Start both containers
