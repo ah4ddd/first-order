@@ -1,3 +1,9 @@
+# JUST NOTE:
+# Docker is a containerization platform that packages an application together
+# with its dependencies and userspace environment while sharing
+# the host operating system kernel through Linux namespaces
+# and cgroups for isolation and resource management.
+
 # Instructions for building an image
 # Docker reads this file and creates an image.
 # When Docker reads the Dockerfile and builds it:
