@@ -61,7 +61,7 @@ services:
 volumes:
   postgres_data:
 
-    # docker compose up:
+    # docker compose up::
     # 1. Build api image from Dockerfile
     # 2. Create api container
     # 3. Download postgres image
