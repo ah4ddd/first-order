@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .config import get_settings
@@ -37,6 +37,6 @@ app.include_router(market.router)
 app.include_router(notes.router)
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
-    return {"status": "ok", "app": settings.app_name}
+    return Response(status_code=200)
