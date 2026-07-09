@@ -24,8 +24,10 @@ FastAPI · PostgreSQL · SQLAlchemy 2.0 (async) · Alembic · JWT · Argon2 · D
 - RSS fallback for news when primary source rate-limits
 
 ## Run locally
-\`\`\`bash
+
+```bash
 docker compose up --build
 docker compose exec api alembic upgrade head
 docker compose exec api python -m app.seed_stocks
-\`\`\`
+```
+
