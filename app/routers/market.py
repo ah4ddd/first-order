@@ -7,7 +7,7 @@ import asyncio
 
 from ..database import DBDep
 from ..db_models import Stock
-from services.rss_news import search_rss_news, get_rss_news
+from ..services.rss_news import search_rss_news, get_rss_news
 
 router = APIRouter(prefix="/market", tags=["market"])
 
