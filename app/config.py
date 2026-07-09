@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     app_name: str = "First-Order"
     debug: bool = False
 
-    news_api_key: str = ""
+    finnhub_api_key: str = ""
 
     # MODERN FIXED BLOCK (Replaces class Config)
     model_config = SettingsConfigDict(

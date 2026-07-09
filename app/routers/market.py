@@ -7,6 +7,7 @@ import asyncio
 
 from ..database import DBDep
 from ..db_models import Stock
+from services.rss_news import search_rss_news, get_rss_news
 
 router = APIRouter(prefix="/market", tags=["market"])
 
@@ -197,42 +198,54 @@ async def get_stock_price(symbol: str):
 @router.get("/news/{symbol}")
 async def get_stock_news(symbol: str):
     """
-    Recent news headlines for a stock symbol.
-    Uses yfinance built-in news — no API key required.
+    Get recent news for a stock symbol.
+    Primary: yfinance news feed.
+    Fallback: RSS feeds searched by company name.
     """
     symbol = symbol.upper()
 
     if _is_cache_valid(_news_cache, symbol, NEWS_TTL):
         return {"symbol": symbol, "news": _news_cache[symbol]["data"], "cached": True}
 
+    # Try yfinance first
     try:
         raw_news = await asyncio.to_thread(_fetch_ticker_news, symbol)
+        if raw_news:
+            news = []
+            for item in raw_news[:10]:
+                content = item.get("content", {})
+                news.append({
+                    "title": content.get("title") or item.get("title", "No title"),
+                    "summary": content.get("summary") or "",
+                    "url": (
+                        content.get("canonicalUrl", {}).get("url")
+                        or item.get("link", "")
+                    ),
+                    "published_at": content.get("pubDate") or item.get("providerPublishTime", ""),
+                    "source": (
+                        content.get("provider", {}).get("displayName")
+                        or item.get("publisher", "Unknown")
+                    ),
+                    "via": "yfinance",
+                })
 
-        if not raw_news:
-            return {"symbol": symbol, "news": [], "cached": False}
+            _news_cache[symbol] = {"data": news, "cached_at": datetime.now(timezone.utc)}
+            return {"symbol": symbol, "news": news, "cached": False}
+    except Exception:
+        pass
 
-        news = []
-        for item in raw_news[:10]:
-            content = item.get("content", {})
-            news.append({
-                "title": content.get("title") or item.get("title", "No title"),
-                "summary": content.get("summary") or "",
-                "url": (
-                    content.get("canonicalUrl", {}).get("url")
-                    or item.get("link", "")
-                ),
-                "published_at": content.get("pubDate") or item.get("providerPublishTime", ""),
-                "source": (
-                    content.get("provider", {}).get("displayName")
-                    or item.get("publisher", "Unknown")
-                ),
-            })
+    # Fallback to RSS search using the symbol as query
+    # Strip exchange suffix for better search results
+    search_term = symbol.split(".")[0]
+    rss_news = await search_rss_news(search_term)
 
-        _news_cache[symbol] = {"data": news, "cached_at": datetime.now(timezone.utc)}
-        return {"symbol": symbol, "news": news, "cached": False}
+    if rss_news:
+        for item in rss_news:
+            item["via"] = "rss"
+        _news_cache[symbol] = {"data": rss_news, "cached_at": datetime.now(timezone.utc)}
+        return {"symbol": symbol, "news": rss_news, "cached": False, "source": "rss_fallback"}
 
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Failed to fetch news for {symbol}: {str(e)}")
+    return {"symbol": symbol, "news": [], "cached": False}
 
 
 @router.get("/overview")
