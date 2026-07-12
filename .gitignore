@@ -13,9 +13,6 @@ env/
 .env
 .env.*
 
-# VS Code
-.vscode/
-
 # Pytest
 .pytest_cache/
 .coverage
