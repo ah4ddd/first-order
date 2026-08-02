@@ -37,6 +37,15 @@ app.include_router(market.router)
 app.include_router(notes.router)
 
 
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to the First Order API 🚀",
+        "docs": "/docs",
+        "health": "/health",
+    }
+
+
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return Response(status_code=200)
