@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First-Order | Global Market Research</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            min-height: 100vh;
+        }
+
+        /* NAV */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #fff;
+        }
+
+        .logo span {
+            color: #00ff88;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn-outline {
+            border: 1px solid #333;
+            background: transparent;
+            color: #e0e0e0;
+        }
+
+        .btn-outline:hover {
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .btn-primary {
+            border: 1px solid #00ff88;
+            background: #00ff88;
+            color: #0a0a0a;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: #00cc6a;
+        }
+
+        /* HERO */
+        .hero {
+            text-align: center;
+            padding: 60px 40px 40px;
+        }
+
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            color: #666;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        /* OVERVIEW TABLE */
+        .section {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 40px 60px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .last-updated {
+            font-size: 0.75rem;
+            color: #444;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead tr {
+            border-bottom: 1px solid #1e1e1e;
+        }
+
+        th {
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            color: #444;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        th:not(:first-child) {
+            text-align: right;
+        }
+
+        td {
+            padding: 14px 16px;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #111;
+        }
+
+        td:not(:first-child) {
+            text-align: right;
+        }
+
+        tr:hover {
+            background: #0f0f0f;
+        }
+
+        .market-name {
+            color: #ccc;
+        }
+
+        .price {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .change-positive {
+            color: #00ff88;
+        }
+
+        .change-negative {
+            color: #ff4444;
+        }
+
+        .state-badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            letter-spacing: 1px;
+        }
+
+        .state-REGULAR {
+            background: #001a0d;
+            color: #00ff88;
+        }
+
+        .state-PRE {
+            background: #1a1400;
+            color: #ffaa00;
+        }
+
+        .state-PREPRE {
+            background: #1a1400;
+            color: #ffaa00;
+        }
+
+        .state-POSTPOST {
+            background: #0a0a1a;
+            color: #6688ff;
+        }
+
+        .state-CLOSED {
+            background: #1a0a0a;
+            color: #ff4444;
+        }
+
+        .state-UNKNOWN {
+            background: #111;
+            color: #444;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #444;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+        }
+
+        .error-msg {
+            text-align: center;
+            padding: 40px;
+            color: #ff4444;
+            font-size: 0.85rem;
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            padding: 30px;
+            border-top: 1px solid #111;
+            color: #333;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        footer a {
+            color: #444;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: #00ff88;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="logo">FIRST<span>-</span>ORDER</div>
+        <div class="nav-links">
+            <a href="login.html" class="btn btn-outline">Login</a>
+            <a href="login.html#register" class="btn btn-primary">Sign Up</a>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>Global Market Research</h1>
+        <p>Track stocks across 14 markets. Write research notes. Never lose context.</p>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <span class="section-title">Market Overview</span>
+            <span class="last-updated" id="last-updated">Loading...</span>
+        </div>
+
+        <div id="overview-container">
+            <div class="loading">FETCHING MARKETS...</div>
+        </div>
+    </div>
+
+    <footer>
+        <a href="https://first-order-a3v1.onrender.com/docs" target="_blank">API DOCS</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/ah4ddd/first-order" target="_blank">GITHUB</a>
+        &nbsp;·&nbsp;
+        Built with FastAPI · PostgreSQL · yfinance
+    </footer>
+
+    <script>
+        const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'
+            : 'https://first-order-a3v1.onrender.com';
+
+        function formatPrice(price, currency) {
+            if (price === null || price === undefined) return '—';
+            if (currency === 'INR') return '₹' + price.toLocaleString('en-IN');
+            if (currency === 'JPY' || currency === 'KRW') return price.toLocaleString();
+            return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatChange(pct) {
+            if (pct === null || pct === undefined) return '—';
+            const sign = pct >= 0 ? '▲' : '▼';
+            const cls = pct >= 0 ? 'change-positive' : 'change-negative';
+            return `<span class="${cls}">${sign} ${Math.abs(pct).toFixed(2)}%</span>`;
+        }
+
+        function getStateClass(state) {
+            const known = ['REGULAR', 'PRE', 'PREPRE', 'POSTPOST', 'CLOSED'];
+            return known.includes(state) ? `state-${state}` : 'state-UNKNOWN';
+        }
+
+        function getStateLabel(state) {
+            const labels = {
+                REGULAR: 'OPEN',
+                PRE: 'PRE',
+                PREPRE: 'PRE',
+                POSTPOST: 'AFTER',
+                CLOSED: 'CLOSED',
+            };
+            return labels[state] || state || '—';
+        }
+
+        async function loadOverview() {
+            const container = document.getElementById('overview-container');
+            const lastUpdated = document.getElementById('last-updated');
+
+            try {
+                const res = await fetch(`${API}/market/overview`);
+                if (!res.ok) throw new Error('API error');
+                const data = await res.json();
+
+                const markets = data.overview;
+                const rows = Object.entries(markets).map(([name, info]) => {
+                    if (info.error) {
+                        return `<tr>
+                        <td class="market-name">${name}</td>
+                        <td class="price" style="color:#333">—</td>
+                        <td>—</td>
+                        <td><span class="state-badge state-UNKNOWN">N/A</span></td>
+                    </tr>`;
+                    }
+                    return `<tr>
+                    <td class="market-name">${name}</td>
+                    <td class="price">${formatPrice(info.price, info.currency)}
+                        <small style="color:#444;font-size:0.7rem"> ${info.currency || ''}</small>
+                    </td>
+                    <td>${formatChange(info.change_percent)}</td>
+                    <td><span class="state-badge ${getStateClass(info.market_state)}">${getStateLabel(info.market_state)}</span></td>
+                </tr>`;
+                }).join('');
+
+                container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Market</th>
+                            <th>Price</th>
+                            <th>Change</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+
+                const now = new Date();
+                lastUpdated.textContent = `Updated ${now.toLocaleTimeString()}`;
+
+            } catch (err) {
+                container.innerHTML = `<div class="error-msg">Failed to load market data. API may be starting up — refresh in 30 seconds.</div>`;
+                lastUpdated.textContent = '';
+            }
+        }
+
+        // Load on page open
+        loadOverview();
+
+        // Auto-refresh every 2 minutes
+        setInterval(loadOverview, 2 * 60 * 1000);
+    </script>
+
+</body>
+
+</html>

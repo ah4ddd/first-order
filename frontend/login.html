@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First-Order | Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* NAV */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: #00ff88;
+        }
+
+        /* MAIN */
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            margin-bottom: 32px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            color: #444;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            font-family: inherit;
+        }
+
+        .tab.active {
+            color: #00ff88;
+            border-bottom-color: #00ff88;
+        }
+
+        .tab:hover:not(.active) {
+            color: #888;
+        }
+
+        /* FORMS */
+        .form-panel {
+            display: none;
+        }
+
+        .form-panel.active {
+            display: block;
+        }
+
+        .form-title {
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            color: #444;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+
+        .field {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            color: #555;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #00ff88;
+        }
+
+        input::placeholder {
+            color: #333;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 8px;
+            background: #00ff88;
+            border: none;
+            border-radius: 4px;
+            color: #0a0a0a;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .submit-btn:hover {
+            background: #00cc6a;
+        }
+
+        .submit-btn:disabled {
+            background: #1a3d2a;
+            color: #2a6644;
+            cursor: not-allowed;
+        }
+
+        /* MESSAGES */
+        .msg {
+            margin-top: 16px;
+            padding: 12px 14px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            display: none;
+        }
+
+        .msg.error {
+            background: #1a0a0a;
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            display: block;
+        }
+
+        .msg.success {
+            background: #001a0d;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            display: block;
+        }
+
+        .switch-hint {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #333;
+        }
+
+        .switch-hint button {
+            background: none;
+            border: none;
+            color: #00ff88;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.75rem;
+            text-decoration: underline;
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #222;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html" class="logo">FIRST<span>-</span>ORDER</a>
+    </nav>
+
+    <main>
+        <div class="auth-container">
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('login')">Login</button>
+                <button class="tab" onclick="switchTab('register')">Sign Up</button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <div class="form-panel active" id="panel-login">
+                <p class="form-title">Access your account</p>
+
+                <div class="field">
+                    <label>Email</label>
+                    <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+                </div>
+
+                <div class="field">
+                    <label>Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+                </div>
+
+                <button class="submit-btn" onclick="handleLogin()">Login</button>
+                <div class="msg" id="login-msg"></div>
+
+                <p class="switch-hint">
+                    No account? <button onclick="switchTab('register')">Sign up</button>
+                </p>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div class="form-panel" id="panel-register">
+                <p class="form-title">Create an account</p>
+
+                <div class="field">
+                    <label>Email</label>
+                    <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email">
+                </div>
+
+                <div class="field">
+                    <label>Username</label>
+                    <input type="text" id="reg-username" placeholder="ahad" autocomplete="username">
+                </div>
+
+                <div class="field">
+                    <label>Password</label>
+                    <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password">
+                </div>
+
+                <button class="submit-btn" onclick="handleRegister()">Create Account</button>
+                <div class="msg" id="register-msg"></div>
+
+                <p class="switch-hint">
+                    Already have an account? <button onclick="switchTab('login')">Login</button>
+                </p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>FIRST-ORDER · Global Market Research</footer>
+
+    <script>
+        const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'
+            : 'https://first-order-a3v1.onrender.com';
+
+        // Check if already logged in
+        if (localStorage.getItem('token')) {
+            window.location.href = 'dashboard.html';
+        }
+
+        // Switch between login/register tabs
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+
+            document.querySelector(`.tab:${tab === 'login' ? 'first-child' : 'last-child'}`).classList.add('active');
+            document.getElementById(`panel-${tab}`).classList.add('active');
+
+            // Clear messages when switching
+            document.getElementById('login-msg').className = 'msg';
+            document.getElementById('register-msg').className = 'msg';
+        }
+
+        // Check URL hash on load — #register goes straight to register tab
+        if (window.location.hash === '#register') {
+            switchTab('register');
+        }
+
+        function showMsg(id, text, type) {
+            const el = document.getElementById(id);
+            el.textContent = text;
+            el.className = `msg ${type}`;
+        }
+
+        function setLoading(btnEl, loading) {
+            btnEl.disabled = loading;
+            btnEl.textContent = loading ? 'Please wait...' : btnEl.dataset.label;
+        }
+
+        // LOGIN
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const btn = document.querySelector('#panel-login .submit-btn');
+
+            if (!email || !password) {
+                showMsg('login-msg', 'Email and password required.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+
+            try {
+                // OAuth2 form requires application/x-www-form-urlencoded
+                // username field = email (that's the OAuth2 spec quirk)
+                const body = new URLSearchParams();
+                body.append('username', email);
+                body.append('password', password);
+
+                const res = await fetch(`${API}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString(),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showMsg('login-msg', data.detail || 'Login failed.', 'error');
+                    return;
+                }
+
+                // Store token and redirect
+                localStorage.setItem('token', data.access_token);
+                showMsg('login-msg', 'Logged in. Redirecting...', 'success');
+                setTimeout(() => window.location.href = 'dashboard.html', 800);
+
+            } catch (err) {
+                showMsg('login-msg', 'Network error. Is the API running?', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Login';
+            }
+        }
+
+        // REGISTER
+        async function handleRegister() {
+            const email = document.getElementById('reg-email').value.trim();
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const btn = document.querySelector('#panel-register .submit-btn');
+
+            if (!email || !username || !password) {
+                showMsg('register-msg', 'All fields required.', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMsg('register-msg', 'Password must be at least 6 characters.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+
+            try {
+                const res = await fetch(`${API}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, username, password }),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showMsg('register-msg', data.detail || 'Registration failed.', 'error');
+                    return;
+                }
+
+                showMsg('register-msg', 'Account created. Logging you in...', 'success');
+
+                // Auto-login after register
+                setTimeout(() => {
+                    document.getElementById('login-email').value = email;
+                    document.getElementById('login-password').value = password;
+                    switchTab('login');
+                    handleLogin();
+                }, 800);
+
+            } catch (err) {
+                showMsg('register-msg', 'Network error. Is the API running?', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
+            }
+        }
+
+        // Allow Enter key to submit
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            const loginActive = document.getElementById('panel-login').classList.contains('active');
+            if (loginActive) handleLogin();
+            else handleRegister();
+        });
+    </script>
+
+</body>
+
+</html>
