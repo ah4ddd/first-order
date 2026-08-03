@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First-Order | Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            min-height: 100vh;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: #00ff88;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .username {
+            font-size: 0.75rem;
+            color: #444;
+            letter-spacing: 1px;
+        }
+
+        .username span {
+            color: #00ff88;
+        }
+
+        .btn-ghost {
+            padding: 8px 16px;
+            border: 1px solid #222;
+            background: transparent;
+            color: #555;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+        }
+
+        .btn-ghost:hover {
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .add-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .add-bar input {
+            flex: 1;
+            padding: 12px 16px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+            text-transform: uppercase;
+        }
+
+        .add-bar input:focus {
+            border-color: #00ff88;
+        }
+
+        .add-bar input::placeholder {
+            color: #333;
+            text-transform: none;
+        }
+
+        .add-btn {
+            padding: 12px 24px;
+            background: #00ff88;
+            border: none;
+            border-radius: 4px;
+            color: #0a0a0a;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .add-btn:hover {
+            background: #00cc6a;
+        }
+
+        .add-btn:disabled {
+            background: #1a3d2a;
+            color: #2a6644;
+            cursor: not-allowed;
+        }
+
+        .add-msg {
+            font-size: 0.75rem;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            min-height: 20px;
+        }
+
+        .add-msg.error {
+            color: #ff4444;
+        }
+
+        .add-msg.success {
+            color: #00ff88;
+        }
+
+        .hint {
+            margin-bottom: 28px;
+            padding: 12px 16px;
+            background: #0d0d0d;
+            border: 1px solid #1a1a1a;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            color: #3a3a3a;
+            letter-spacing: 1px;
+            line-height: 1.8;
+        }
+
+        .hint code {
+            color: #00ff88;
+            background: #001a0d;
+            padding: 1px 5px;
+            border-radius: 2px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            color: #444;
+            text-transform: uppercase;
+        }
+
+        .stock-count {
+            font-size: 0.7rem;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead tr {
+            border-bottom: 1px solid #1e1e1e;
+        }
+
+        th {
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            color: #333;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        th:nth-child(2),
+        th:nth-child(3) {
+            text-align: right;
+        }
+
+        th:nth-child(4),
+        th:nth-child(5) {
+            text-align: center;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #0f0f0f;
+            vertical-align: middle;
+        }
+
+        td:nth-child(2),
+        td:nth-child(3) {
+            text-align: right;
+        }
+
+        td:nth-child(4),
+        td:nth-child(5) {
+            text-align: center;
+        }
+
+        tr:hover {
+            background: #0d0d0d;
+        }
+
+        .stock-symbol {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+        }
+
+        .stock-symbol:hover {
+            color: #00ff88;
+        }
+
+        .stock-name {
+            font-size: 0.7rem;
+            color: #444;
+            margin-top: 3px;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .price-cell {
+            font-size: 0.95rem;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .currency-label {
+            font-size: 0.65rem;
+            color: #333;
+            margin-left: 4px;
+        }
+
+        .price-loading {
+            color: #2a2a2a;
+            font-size: 0.8rem;
+        }
+
+        .change-up {
+            color: #00ff88;
+        }
+
+        .change-down {
+            color: #ff4444;
+        }
+
+        .change-null {
+            color: #333;
+        }
+
+        .country-badge {
+            font-size: 0.65rem;
+            padding: 3px 7px;
+            border-radius: 3px;
+            background: #111;
+            color: #555;
+            letter-spacing: 1px;
+        }
+
+        .remove-btn {
+            background: none;
+            border: 1px solid #1a1a1a;
+            color: #333;
+            font-size: 0.75rem;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .remove-btn:hover {
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #333;
+        }
+
+        .empty-state p {
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .empty-state small {
+            font-size: 0.75rem;
+            color: #222;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #333;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html" class="logo">FIRST<span>-</span>ORDER</a>
+        <div class="nav-right">
+            <span class="username">logged in as <span id="nav-username">...</span></span>
+            <button class="btn-ghost" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="add-bar">
+            <input type="text" id="symbol-input" placeholder="Add a stock — AAPL, RELIANCE.NS, 2330.TW, VOW3.DE..."
+                onkeydown="if(event.key==='Enter') addStock()">
+            <button class="add-btn" onclick="addStock()" id="add-btn">+ ADD</button>
+        </div>
+        <div class="add-msg" id="add-msg"></div>
+
+        <div class="hint">
+            Symbol format by market:
+            <code>AAPL</code> US &nbsp;·&nbsp;
+            <code>RELIANCE.NS</code> India NSE &nbsp;·&nbsp;
+            <code>SAP.DE</code> Germany &nbsp;·&nbsp;
+            <code>7203.T</code> Japan &nbsp;·&nbsp;
+            <code>SHEL.L</code> UK &nbsp;·&nbsp;
+            <code>2330.TW</code> Taiwan &nbsp;·&nbsp;
+            <code>005930.KS</code> Korea &nbsp;·&nbsp;
+            <code>0700.HK</code> HK &nbsp;·&nbsp;
+            <code>MC.PA</code> France
+        </div>
+
+        <div class="section-header">
+            <span class="section-title">Your Watchlist</span>
+            <span class="stock-count" id="stock-count"></span>
+        </div>
+
+        <div id="watchlist-container">
+            <div class="loading">LOADING WATCHLIST...</div>
+        </div>
+
+    </div>
+
+    <script>
+        const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'
+            : 'https://first-order-a3v1.onrender.com';
+
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'login.html';
+
+        function authHeaders() {
+            return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        async function loadUser() {
+            try {
+                const res = await fetch(API + '/auth/me', { headers: authHeaders() });
+                if (res.status === 401) { logout(); return; }
+                const data = await res.json();
+                document.getElementById('nav-username').textContent = data.username;
+            } catch (e) { }
+        }
+
+        function formatPrice(price, currency) {
+            if (price === null || price === undefined) return '—';
+            if (currency === 'INR') return '₹' + price.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+            if (currency === 'JPY') return '¥' + Math.round(price).toLocaleString();
+            if (currency === 'KRW') return '₩' + Math.round(price).toLocaleString();
+            if (currency === 'HKD') return 'HK$' + price.toLocaleString('en-US', { maximumFractionDigits: 2 });
+            return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatChange(pct) {
+            if (pct === null || pct === undefined) return '<span class="change-null">—</span>';
+            const sign = pct >= 0 ? '▲' : '▼';
+            const cls = pct >= 0 ? 'change-up' : 'change-down';
+            return '<span class="' + cls + '">' + sign + ' ' + Math.abs(pct).toFixed(2) + '%</span>';
+        }
+
+        async function loadWatchlist() {
+            const container = document.getElementById('watchlist-container');
+            const countEl = document.getElementById('stock-count');
+
+            try {
+                const res = await fetch(API + '/watchlist/', { headers: authHeaders() });
+                if (res.status === 401) { logout(); return; }
+                const items = await res.json();
+
+                if (items.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>Your watchlist is empty.</p><small>Add a stock symbol above to get started.</small></div>';
+                    countEl.textContent = '';
+                    return;
+                }
+
+                countEl.textContent = items.length + ' stock' + (items.length !== 1 ? 's' : '');
+
+                const rows = items.map(function (item) {
+                    return '<tr id="row-' + item.stock.symbol + '">' +
+                        '<td><a class="stock-symbol" href="stock.html?symbol=' + item.stock.symbol + '">' + item.stock.symbol + '</a>' +
+                        '<div class="stock-name">' + (item.stock.name !== item.stock.symbol ? item.stock.name : '') + '</div></td>' +
+                        '<td class="price-cell" id="price-' + item.stock.symbol + '"><span class="price-loading">loading...</span></td>' +
+                        '<td id="change-' + item.stock.symbol + '"><span class="price-loading">—</span></td>' +
+                        '<td><span class="country-badge">' + item.stock.country + '</span></td>' +
+                        '<td><button class="remove-btn" onclick="removeStock(\'' + item.stock.symbol + '\')">Remove</button></td>' +
+                        '</tr>';
+                }).join('');
+
+                container.innerHTML = '<table><thead><tr><th>Stock</th><th>Price</th><th>Change</th><th>Market</th><th></th></tr></thead><tbody id="watchlist-body">' + rows + '</tbody></table>';
+
+                // Fetch all prices in parallel
+                items.forEach(function (item) { fetchPrice(item.stock.symbol); });
+
+            } catch (err) {
+                container.innerHTML = '<div class="loading" style="color:#ff4444">Failed to load watchlist.</div>';
+            }
+        }
+
+        async function fetchPrice(symbol) {
+            try {
+                const res = await fetch(API + '/market/price/' + symbol);
+                if (!res.ok) throw new Error('failed');
+                const data = await res.json();
+                const priceEl = document.getElementById('price-' + symbol);
+                const changeEl = document.getElementById('change-' + symbol);
+                if (priceEl) priceEl.innerHTML = formatPrice(data.price, data.currency) + '<span class="currency-label">' + (data.currency || '') + '</span>';
+                if (changeEl) changeEl.innerHTML = formatChange(data.change_percent);
+            } catch (e) {
+                const priceEl = document.getElementById('price-' + symbol);
+                if (priceEl) priceEl.innerHTML = '<span class="price-loading">unavailable</span>';
+            }
+        }
+
+        async function addStock() {
+            const input = document.getElementById('symbol-input');
+            const btn = document.getElementById('add-btn');
+            const msgEl = document.getElementById('add-msg');
+            const symbol = input.value.trim().toUpperCase();
+            if (!symbol) return;
+
+            btn.disabled = true;
+            btn.textContent = '...';
+            msgEl.textContent = '';
+            msgEl.className = 'add-msg';
+
+            try {
+                const res = await fetch(API + '/watchlist/' + symbol, { method: 'POST', headers: authHeaders() });
+                const data = await res.json();
+                if (!res.ok) {
+                    msgEl.textContent = data.detail || 'Failed to add stock.';
+                    msgEl.className = 'add-msg error';
+                    return;
+                }
+                msgEl.textContent = symbol + ' added to watchlist.';
+                msgEl.className = 'add-msg success';
+                input.value = '';
+                await loadWatchlist();
+            } catch (err) {
+                msgEl.textContent = 'Network error.';
+                msgEl.className = 'add-msg error';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '+ ADD';
+            }
+        }
+
+        async function removeStock(symbol) {
+            try {
+                const res = await fetch(API + '/watchlist/' + symbol, { method: 'DELETE', headers: authHeaders() });
+                if (res.status === 204 || res.ok) {
+                    const row = document.getElementById('row-' + symbol);
+                    if (row) row.remove();
+                    const body = document.getElementById('watchlist-body');
+                    const remaining = body ? body.querySelectorAll('tr').length : 0;
+                    if (remaining === 0) loadWatchlist();
+                    else document.getElementById('stock-count').textContent = remaining + ' stock' + (remaining !== 1 ? 's' : '');
+                }
+            } catch (err) { console.error('Remove failed', err); }
+        }
+
+        loadUser();
+        loadWatchlist();
+    </script>
+
+</body>
+
+</html>
