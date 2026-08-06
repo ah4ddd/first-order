@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First-Order | Stock</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            min-height: 100vh;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: #00ff88;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .back-link {
+            font-size: 0.75rem;
+            color: #444;
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .back-link:hover {
+            color: #00ff88;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        /* PRICE CARD */
+        .price-card {
+            background: #0d0d0d;
+            border: 1px solid #1a1a1a;
+            border-radius: 6px;
+            padding: 28px 32px;
+            margin-bottom: 40px;
+        }
+
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .stock-symbol-big {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 2px;
+        }
+
+        .stock-name-big {
+            font-size: 0.8rem;
+            color: #444;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+
+        .price-big {
+            text-align: right;
+        }
+
+        .price-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .price-currency {
+            font-size: 0.8rem;
+            color: #333;
+            margin-left: 6px;
+        }
+
+        .price-change {
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .change-up {
+            color: #00ff88;
+        }
+
+        .change-down {
+            color: #ff4444;
+        }
+
+        .price-meta {
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-label {
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        .meta-value {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .loading-card {
+            color: #333;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+        }
+
+        /* SECTIONS */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            color: #444;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #111;
+        }
+
+        /* NEWS */
+        .news-item {
+            padding: 16px 0;
+            border-bottom: 1px solid #0f0f0f;
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+        }
+
+        .news-title {
+            font-size: 0.85rem;
+            color: #ccc;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .news-title a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .news-title a:hover {
+            color: #00ff88;
+        }
+
+        .news-meta {
+            font-size: 0.7rem;
+            color: #333;
+            letter-spacing: 1px;
+        }
+
+        .news-meta span {
+            margin-right: 12px;
+        }
+
+        .news-summary {
+            font-size: 0.78rem;
+            color: #444;
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        /* NOTES */
+        .note-form {
+            background: #0d0d0d;
+            border: 1px solid #1a1a1a;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .note-form input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        .note-form input:focus {
+            border-color: #00ff88;
+        }
+
+        .note-form textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            resize: vertical;
+            min-height: 80px;
+            margin-bottom: 10px;
+        }
+
+        .note-form textarea:focus {
+            border-color: #00ff88;
+        }
+
+        .note-form input::placeholder,
+        .note-form textarea::placeholder {
+            color: #333;
+        }
+
+        .save-btn {
+            padding: 9px 20px;
+            background: #00ff88;
+            border: none;
+            border-radius: 4px;
+            color: #0a0a0a;
+            font-family: inherit;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            cursor: pointer;
+        }
+
+        .save-btn:hover {
+            background: #00cc6a;
+        }
+
+        .save-btn:disabled {
+            background: #1a3d2a;
+            color: #2a6644;
+            cursor: not-allowed;
+        }
+
+        .note-msg {
+            font-size: 0.75rem;
+            margin-top: 8px;
+            letter-spacing: 1px;
+            min-height: 16px;
+        }
+
+        .note-msg.error {
+            color: #ff4444;
+        }
+
+        .note-msg.success {
+            color: #00ff88;
+        }
+
+        .note-card {
+            background: #0d0d0d;
+            border: 1px solid #1a1a1a;
+            border-radius: 4px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+        }
+
+        .note-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .note-title {
+            font-size: 0.85rem;
+            color: #ccc;
+            font-weight: 600;
+        }
+
+        .note-price-snap {
+            font-size: 0.7rem;
+            color: #333;
+            margin-top: 2px;
+        }
+
+        .note-content {
+            font-size: 0.82rem;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .note-date {
+            font-size: 0.65rem;
+            color: #2a2a2a;
+            letter-spacing: 1px;
+        }
+
+        .note-delete {
+            background: none;
+            border: none;
+            color: #2a2a2a;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: inherit;
+            padding: 2px 6px;
+        }
+
+        .note-delete:hover {
+            color: #ff4444;
+        }
+
+        .auth-prompt {
+            padding: 20px;
+            background: #0d0d0d;
+            border: 1px solid #1a1a1a;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #444;
+            letter-spacing: 1px;
+        }
+
+        .auth-prompt a {
+            color: #00ff88;
+        }
+
+        .empty-notes {
+            font-size: 0.78rem;
+            color: #2a2a2a;
+            padding: 16px 0;
+            letter-spacing: 1px;
+        }
+
+        .loading {
+            color: #2a2a2a;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            padding: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html" class="logo">FIRST<span>-</span>ORDER</a>
+        <div class="nav-right">
+            <a href="dashboard.html" class="back-link">← Watchlist</a>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- PRICE CARD -->
+        <div class="price-card" id="price-card">
+            <div class="loading-card">LOADING...</div>
+        </div>
+
+        <!-- NEWS -->
+        <div class="section">
+            <div class="section-title">Latest News</div>
+            <div id="news-container">
+                <div class="loading">FETCHING NEWS...</div>
+            </div>
+        </div>
+
+        <!-- NOTES -->
+        <div class="section">
+            <div class="section-title">Research Notes</div>
+            <div id="notes-section"></div>
+        </div>
+
+    </div>
+
+    <script>
+        const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'
+            : 'https://first-order-a3v1.onrender.com';
+
+        const token = localStorage.getItem('token');
+        const params = new URLSearchParams(window.location.search);
+        const symbol = (params.get('symbol') || '').toUpperCase();
+
+        if (!symbol) window.location.href = 'dashboard.html';
+
+        document.title = 'First-Order | ' + symbol;
+
+        function authHeaders() {
+            return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+        }
+
+        function fmtPrice(price, currency) {
+            if (!price && price !== 0) return '—';
+            if (currency === 'INR') return '₹' + price.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+            if (currency === 'JPY') return '¥' + Math.round(price).toLocaleString();
+            if (currency === 'KRW') return '₩' + Math.round(price).toLocaleString();
+            return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function fmtChange(pct) {
+            if (pct === null || pct === undefined) return '<span style="color:#333">—</span>';
+            const sign = pct >= 0 ? '▲' : '▼';
+            const cls = pct >= 0 ? 'change-up' : 'change-down';
+            return '<span class="' + cls + '">' + sign + ' ' + Math.abs(pct).toFixed(2) + '%</span>';
+        }
+
+        function fmtDate(str) {
+            if (!str) return '';
+            try { return new Date(str).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+            catch (e) { return str; }
+        }
+
+        // LOAD PRICE
+        async function loadPrice() {
+            const card = document.getElementById('price-card');
+            try {
+                const res = await fetch(API + '/market/price/' + symbol);
+                if (!res.ok) throw new Error('failed');
+                const d = await res.json();
+                card.innerHTML =
+                    '<div class="stock-header">' +
+                    '<div><div class="stock-symbol-big">' + symbol + '</div>' +
+                    '<div class="stock-name-big">' + (d.name !== symbol ? d.name : '') + '</div></div>' +
+                    '<div class="price-big">' +
+                    '<div class="price-value">' + fmtPrice(d.price, d.currency) + '<span class="price-currency">' + (d.currency || '') + '</span></div>' +
+                    '<div class="price-change">' + fmtChange(d.change_percent) + ' today</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="price-meta">' +
+                    meta('Day High', fmtPrice(d.day_high, d.currency)) +
+                    meta('Day Low', fmtPrice(d.day_low, d.currency)) +
+                    meta('Volume', d.volume ? Number(d.volume).toLocaleString() : '—') +
+                    meta('52W High', fmtPrice(d.fifty_two_week_high, d.currency)) +
+                    meta('52W Low', fmtPrice(d.fifty_two_week_low, d.currency)) +
+                    meta('Sector', d.sector || '—') +
+                    meta('Status', d.market_state || '—') +
+                    '</div>';
+            } catch (e) {
+                card.innerHTML = '<div class="stock-symbol-big">' + symbol + '</div><div style="color:#333;font-size:0.8rem;margin-top:8px">Price data unavailable.</div>';
+            }
+        }
+
+        function meta(label, value) {
+            return '<div class="meta-item"><div class="meta-label">' + label + '</div><div class="meta-value">' + value + '</div></div>';
+        }
+
+        // LOAD NEWS
+        async function loadNews() {
+            const container = document.getElementById('news-container');
+            try {
+                const res = await fetch(API + '/market/news/' + symbol);
+                const data = await res.json();
+                const items = data.news || [];
+                if (!items.length) {
+                    container.innerHTML = '<div class="loading">No news available.</div>';
+                    return;
+                }
+                container.innerHTML = items.map(function (n) {
+                    return '<div class="news-item">' +
+                        '<div class="news-title"><a href="' + n.url + '" target="_blank" rel="noopener">' + n.title + '</a></div>' +
+                        '<div class="news-meta"><span>' + (n.source || '') + '</span><span>' + fmtDate(n.published_at) + '</span></div>' +
+                        (n.summary ? '<div class="news-summary">' + n.summary.substring(0, 200) + (n.summary.length > 200 ? '...' : '') + '</div>' : '') +
+                        '</div>';
+                }).join('');
+            } catch (e) {
+                container.innerHTML = '<div class="loading">Failed to load news.</div>';
+            }
+        }
+
+        // LOAD NOTES
+        async function loadNotes() {
+            const section = document.getElementById('notes-section');
+            if (!token) {
+                section.innerHTML = '<div class="auth-prompt"><a href="login.html">Log in</a> to write research notes.</div>';
+                return;
+            }
+            section.innerHTML = noteForm() + '<div id="notes-list"><div class="loading">loading notes...</div></div>';
+            await fetchNotes();
+        }
+
+        function noteForm() {
+            return '<div class="note-form">' +
+                '<input type="text" id="note-title" placeholder="Title (optional)">' +
+                '<textarea id="note-content" placeholder="Your research thesis, price targets, risks..."></textarea>' +
+                '<button class="save-btn" onclick="saveNote()" id="save-btn">Save Note</button>' +
+                '<div class="note-msg" id="note-msg"></div>' +
+                '</div>';
+        }
+
+        async function fetchNotes() {
+            const list = document.getElementById('notes-list');
+            if (!list) return;
+            try {
+                const res = await fetch(API + '/notes/stock/' + symbol, { headers: authHeaders() });
+                if (res.status === 401) { list.innerHTML = '<div class="empty-notes">Session expired. <a href="login.html" style="color:#00ff88">Log in again.</a></div>'; return; }
+                const notes = await res.json();
+                if (!notes.length) {
+                    list.innerHTML = '<div class="empty-notes">No notes yet. Write your first thesis above.</div>';
+                    return;
+                }
+                list.innerHTML = notes.map(function (n) {
+                    return '<div class="note-card" id="note-' + n.id + '">' +
+                        '<div class="note-card-header">' +
+                        '<div>' +
+                        '<div class="note-title">' + (n.title || 'Untitled') + '</div>' +
+                        (n.price_at_creation ? '<div class="note-price-snap">Price when written: ' + fmtPrice(n.price_at_creation, n.currency) + ' ' + (n.currency || '') + '</div>' : '') +
+                        '</div>' +
+                        '<button class="note-delete" onclick="deleteNote(' + n.id + ')">✕</button>' +
+                        '</div>' +
+                        '<div class="note-content">' + n.content + '</div>' +
+                        '<div class="note-date">' + fmtDate(n.created_at) + '</div>' +
+                        '</div>';
+                }).join('');
+            } catch (e) {
+                list.innerHTML = '<div class="empty-notes">Failed to load notes.</div>';
+            }
+        }
+
+        async function saveNote() {
+            const title = document.getElementById('note-title').value.trim();
+            const content = document.getElementById('note-content').value.trim();
+            const btn = document.getElementById('save-btn');
+            const msg = document.getElementById('note-msg');
+
+            if (!content) { msg.textContent = 'Write something first.'; msg.className = 'note-msg error'; return; }
+
+            btn.disabled = true; btn.textContent = 'Saving...';
+            msg.textContent = ''; msg.className = 'note-msg';
+
+            try {
+                const res = await fetch(API + '/notes/' + symbol, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ title: title || null, content: content }),
+                });
+                if (!res.ok) { const d = await res.json(); msg.textContent = d.detail || 'Failed.'; msg.className = 'note-msg error'; return; }
+                msg.textContent = 'Note saved.'; msg.className = 'note-msg success';
+                document.getElementById('note-title').value = '';
+                document.getElementById('note-content').value = '';
+                await fetchNotes();
+            } catch (e) {
+                msg.textContent = 'Network error.'; msg.className = 'note-msg error';
+            } finally {
+                btn.disabled = false; btn.textContent = 'Save Note';
+            }
+        }
+
+        async function deleteNote(noteId) {
+            try {
+                const res = await fetch(API + '/notes/' + noteId, { method: 'DELETE', headers: authHeaders() });
+                if (res.status === 204 || res.ok) {
+                    const el = document.getElementById('note-' + noteId);
+                    if (el) el.remove();
+                    const list = document.getElementById('notes-list');
+                    if (list && !list.querySelector('.note-card')) {
+                        list.innerHTML = '<div class="empty-notes">No notes yet. Write your first thesis above.</div>';
+                    }
+                }
+            } catch (e) { }
+        }
+
+        loadPrice();
+        loadNews();
+        loadNotes();
+    </script>
+
+</body>
+
+</html>
