@@ -4,7 +4,7 @@ A global stock market research and watchlist platform built with FastAPI and Pos
 
 Track stocks across 14 markets, read live news, and write timestamped research notes with price snapshots — all through a clean REST API.
 
-**Live:** https://first-order-a3v1.onrender.com/docs
+**Live:** https://first-order-a3v1.onrender.com/
 
 ---
 
