@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from .config import get_settings
 from .routers import auth, watchlist, market, notes
 from fastapi.staticfiles import StaticFiles
+from datetime import timezone, datetime
 
 settings = get_settings()
 
@@ -45,17 +46,14 @@ app.include_router(market.router)
 app.include_router(notes.router)
 
 
-@app.get("/")
-async def root():
+@app.get("/health", include_in_schema=False)
+async def health():
     return {
-        "message": "Welcome to the First Order API 🚀",
-        "docs": "/docs",
-        "health": "/health",
+        "status": "healthy",
+        "service": settings.app_name,
+        "version": "1.0.0",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
-
-@app.api_route("/health", methods=["GET", "HEAD"])
-async def health():
-    return Response(status_code=200)
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
