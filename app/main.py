@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .config import get_settings
 from .routers import auth, watchlist, market, notes
+from fastapi.staticfiles import StaticFiles
 
 settings = get_settings()
 
@@ -56,3 +57,5 @@ async def root():
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return Response(status_code=200)
+
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
