@@ -2,6 +2,11 @@
 
 # First-Order 📈
 
+## 🌍 Idiomas
+
+- 🇺🇸 [English](README.md)
+- 🇪🇸 Español (esta página)
+
 Una plataforma global de investigación y lista de seguimiento del mercado de valores construida con FastAPI y PostgreSQL.
 
 Rastrea acciones en 14 mercados, lee noticias en tiempo real y escribe notas de investigación con marca de tiempo e instantáneas de precio, todo a través de una API REST limpia.
@@ -232,7 +237,7 @@ first-order/
 
 ## Próximos Pasos
 
-- [ ] Frontend mínimo (panel de control, página de detalle de acción, vista de lista de seguimiento)
+- [✅] Frontend mínimo (panel de control, página de detalle de acción, vista de lista de seguimiento)
 - [ ] Posiciones de cartera con seguimiento de ganancias y pérdidas (P&L)
 - [ ] Feed de noticias geopolíticas/macroeconómicas
 - [ ] Resumen de notas impulsado por IA

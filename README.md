@@ -1,5 +1,10 @@
 # First-Order 📈
 
+## 🌍 Languages
+
+- 🇺🇸 English (this page)
+- 🇪🇸 [Español](README.es-ES.md)
+
 A global stock market research and watchlist platform built with FastAPI and PostgreSQL.
 
 Track stocks across 14 markets, read live news, and write timestamped research notes with price snapshots — all through a clean REST API.
@@ -230,7 +235,7 @@ first-order/
 
 ## What's Next
 
-- [ ] Minimal frontend (dashboard, stock detail page, watchlist view)
+- [✅] Minimal frontend (dashboard, stock detail page, watchlist view)
 - [ ] Portfolio positions with P&L tracking
 - [ ] Geopolitical/macro news feed
 - [ ] AI-powered note summarization
