@@ -512,16 +512,17 @@
         }
 
         async function removeStock(symbol) {
+            if (!confirm('Remove ' + symbol + ' from your watchlist?')) return;
             try {
                 const res = await fetch(API + '/watchlist/' + symbol, { method: 'DELETE', headers: authHeaders() });
-                if (res.status === 204 || res.ok) {
-                    const row = document.getElementById('row-' + symbol);
-                    if (row) row.remove();
-                    const body = document.getElementById('watchlist-body');
-                    const remaining = body ? body.querySelectorAll('tr').length : 0;
-                    if (remaining === 0) loadWatchlist();
-                    else document.getElementById('stock-count').textContent = remaining + ' stock' + (remaining !== 1 ? 's' : '');
-                }
+                if (!res.ok) { alert("Failed to remove stock."); return; }
+                const row = document.getElementById('row-' + symbol);
+                if (row) row.remove();
+                const body = document.getElementById('watchlist-body');
+                const remaining = body ? body.querySelectorAll('tr').length : 0;
+                if (remaining === 0) loadWatchlist();
+                else document.getElementById('stock-count').textContent = remaining + ' stock' + (remaining !== 1 ? 's' : '');
+
             } catch (err) { console.error('Remove failed', err); }
         }
 
