@@ -357,7 +357,8 @@
                 const data = await res.json();
 
                 if (!res.ok) {
-                    showMsg('login-msg', data.detail || 'Login failed.', 'error');
+                    // data.detail comes from FastAPI's HTTPException
+                    showMsg('login-msg', data.detail || 'Invalid email or password.', 'error');
                     return;
                 }
 
