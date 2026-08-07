@@ -376,6 +376,29 @@
 
         // Auto-refresh every 2 minutes
         setInterval(loadOverview, 2 * 60 * 1000);
+
+        // Show profile link if already logged in
+        async function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                const res = await fetch(`${API}/auth/me`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!res.ok) {
+                    localStorage.removeItem('token');
+                    return;
+                }
+                const user = await res.json();
+                // Replace login/signup buttons with username + dashboard link
+                document.querySelector('.nav-links').innerHTML =
+                    '<a href="dashboard.html" class="btn btn-outline">' + user.username + ' →</a>' +
+                    '<a href="dashboard.html" class="btn btn-primary">My Watchlist</a>';
+            } catch (e) { }
+        }
+
+        checkAuth();
     </script>
 
 </body>
