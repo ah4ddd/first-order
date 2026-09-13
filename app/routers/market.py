@@ -11,6 +11,11 @@ from ..services.rss_news import search_rss_news, get_rss_news
 
 router = APIRouter(prefix="/market", tags=["market"])
 
+# Create a shared session with cookie persistence across all yfinance calls
+# This means the crumb gets fetched ONCE and reused,
+# reducing the chance of being blocked
+
+
 ## In-memory cache ##
 # dict structure: {symbol: {"data": {...}, "cached_at": datetime}}
 # Why dict and not Redis? Because Redis requires a running server and costs money.
