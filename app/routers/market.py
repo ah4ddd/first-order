@@ -13,7 +13,7 @@ router = APIRouter(prefix="/market", tags=["market"])
 
 # Create a shared session with cookie persistence across all yfinance calls
 # This means the crumb gets fetched ONCE and reused,
-# reducing the chance of being blocked
+# reducing the chance of being blockedw
 
 
 ## In-memory cache ##
