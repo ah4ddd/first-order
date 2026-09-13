@@ -37,17 +37,23 @@ async def get_or_create_stock(symbol: str, db: AsyncSession) -> Stock:
 
     result = await db.execute(select(Stock).where(Stock.symbol == symbol))
     stock = result.scalar_one_or_none()
-
     if stock:
         return stock
 
+    # New symbol — validate it actually exists before creating
     try:
         info = await asyncio.to_thread(_fetch_basic_info, symbol)
+        if info["name"] == symbol and info["exchange"] == "UNKNOWN":
+            raise ValueError(
+                f"'{symbol}' not found. Use proper format: "
+                f"RELIANCE.NS (India), SAP.DE (Germany), AAPL (US), 7203.T (Japan)"
+            )
+    except ValueError:
+        raise
     except Exception:
-        info = {"name": symbol, "exchange": "UNKNOWN", "currency": "UNKNOWN", "price": None}
+        info = {"name": symbol, "exchange": "UNKNOWN", "currency": "UNKNOWN"}
 
     country = _infer_country(symbol)
-
     new_stock = Stock(
         symbol=symbol,
         name=info["name"],

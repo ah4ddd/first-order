@@ -40,7 +40,7 @@ async def add_to_watchlist(symbol: str, current_user: CurrentUser, db: DBDep):
     except ValueError as e:
         raise HTTPException(
             status_code=400,
-            detail=str(e)+ ". Use proper ticker format: AAPL (US), RELIANCE.NS (India), SAP.DE (Germany)"
+            detail=str(e) + ". Use proper ticker format: AAPL (US), RELIANCE.NS (India), SAP.DE (Germany)"
         )
 
     # Check not already in watchlist
