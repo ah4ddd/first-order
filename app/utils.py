@@ -1,35 +1,41 @@
 import yfinance as yf
+from curl_cffi import requests
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from .db_models import Stock
 
+# Real browser-impersonating proxy engine (TLS/JA3 fingerprinted)
+stealth_session = requests.Session(impersonate="chrome")
 
 def _fetch_basic_info(symbol: str) -> dict:
-    """Fetch basic stock info with browser-like session to reduce rate limiting."""
-    ticker = yf.Ticker(symbol)
-    # Access the session yfinance uses and add browser headers
-    try:
-        session = ticker.session
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-        })
-    except Exception:
-        pass
+    """Fetch basic stock info using browser impersonation to bypass cloud IP blocking."""
+    # PASS STEALTH SESSION DIRECTLY HERE!
+    ticker = yf.Ticker(symbol, session=stealth_session)
 
-    info = ticker.info
-    return {
-        "name": info.get("longName") or info.get("shortName") or symbol,
-        "exchange": info.get("exchange") or info.get("fullExchangeName") or "UNKNOWN",
-        "currency": info.get("currency") or "UNKNOWN",
-        "price": (
-            info.get("regularMarketPrice")
-            or info.get("currentPrice")
-            or info.get("previousClose")
-        ),
-    }
+    try:
+        # Use fast_info to bypass heavy anti-scraping blocks triggered by ticker.info
+        fast_info = ticker.fast_info
+
+        # Fallback to basic string manipulation if fast_info fields are missing
+        name = symbol
+        if hasattr(ticker, 'history_metadata') and ticker.history_metadata:
+            name = ticker.history_metadata.get("longName", symbol)
+
+        return {
+            "name": name,
+            "exchange": fast_info.get("exchange") or "UNKNOWN",
+            "currency": fast_info.get("currency") or "UNKNOWN",
+            "price": fast_info.get("lastPrice") or fast_info.get("previousClose"),
+        }
+    except Exception:
+        # Fallback strategy if fast_info fails completely due to tighter cloud bans
+        return {
+            "name": symbol,
+            "exchange": "UNKNOWN",
+            "currency": "UNKNOWN",
+            "price": None
+        }
 
 
 async def get_or_create_stock(symbol: str, db: AsyncSession) -> Stock:

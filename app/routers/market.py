@@ -4,12 +4,18 @@ import yfinance as yf
 from datetime import datetime, timezone
 from typing import Any
 import asyncio
+import logging
+from curl_cffi import requests
 
 from ..database import DBDep
 from ..db_models import Stock
-from ..services.rss_news import search_rss_news, get_rss_news
+from ..services.rss_news import get_symbol_rss_news
 
 router = APIRouter(prefix="/market", tags=["market"])
+logger = logging.getLogger(__name__)
+
+# Initialize the real browser-impersonating proxy engine
+stealth_session = requests.Session(impersonate="chrome")
 
 # Create a shared session with cookie persistence across all yfinance calls
 # This means the crumb gets fetched ONCE and reused,
@@ -68,14 +74,60 @@ def _fetch_ticker_info(symbol: str) -> dict:
     an async def blocks the entire event loop. to_thread pushes it to
     a threadpool so the event loop stays free to handle other requests.
     """
-    ticker = yf.Ticker(symbol)
+    # Inject the browser session to keep Render from getting immediate 401 blocks
+    ticker = yf.Ticker(symbol, session=stealth_session)
     return ticker.info
 
 
 def _fetch_ticker_news(symbol: str) -> list:
-    """Synchronous news fetch - same reason as above."""
-    ticker = yf.Ticker(symbol)
-    return ticker.news or []
+    """Synchronous yfinance news fetch."""
+    ticker = yf.Ticker(symbol, session=stealth_session)
+    return ticker.get_news(count=10, tab="news")
+
+
+def _normalize_published_at(value: Any) -> str:
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value, timezone.utc).isoformat()
+    return str(value or "")
+
+
+def _normalize_yfinance_news_item(item: dict) -> dict | None:
+    content = item.get("content") or {}
+    canonical_url = content.get("canonicalUrl") or {}
+    provider = content.get("provider") or {}
+
+    title = content.get("title") or item.get("title")
+    url = canonical_url.get("url") or item.get("link") or item.get("url")
+
+    if not title or not url:
+        return None
+
+    return {
+        "title": title,
+        "summary": content.get("summary") or item.get("summary") or "",
+        "url": url,
+        "published_at": _normalize_published_at(
+            content.get("pubDate") or item.get("providerPublishTime")
+        ),
+        "source": provider.get("displayName") or item.get("publisher", "Yahoo Finance"),
+        "via": "yfinance",
+    }
+
+
+async def _get_company_name_for_news(symbol: str) -> str | None:
+    cached_price = _price_cache.get(symbol, {}).get("data", {})
+    cached_name = cached_price.get("name")
+    if cached_name and cached_name != symbol:
+        return cached_name
+
+    try:
+        info = await asyncio.to_thread(_fetch_ticker_info, symbol)
+    except Exception as exc:
+        logger.warning("Could not look up company name for %s: %s", symbol, exc)
+        return None
+
+    name = _safe_get(info, "longName", "shortName")
+    return name if name and name != symbol else None
 
 
 # Exchange suffix reference #
@@ -210,44 +262,50 @@ async def get_stock_news(symbol: str):
     symbol = symbol.upper()
 
     if _is_cache_valid(_news_cache, symbol, NEWS_TTL):
-        return {"symbol": symbol, "news": _news_cache[symbol]["data"], "cached": True}
+        cached = _news_cache[symbol]
+        return {
+            "symbol": symbol,
+            "news": cached["data"],
+            "cached": True,
+            "source": cached["source"],
+        }
 
     # Try yfinance first
     try:
         raw_news = await asyncio.to_thread(_fetch_ticker_news, symbol)
         if raw_news:
-            news = []
-            for item in raw_news[:10]:
-                content = item.get("content", {})
-                news.append({
-                    "title": content.get("title") or item.get("title", "No title"),
-                    "summary": content.get("summary") or "",
-                    "url": (
-                        content.get("canonicalUrl", {}).get("url")
-                        or item.get("link", "")
-                    ),
-                    "published_at": content.get("pubDate") or item.get("providerPublishTime", ""),
-                    "source": (
-                        content.get("provider", {}).get("displayName")
-                        or item.get("publisher", "Unknown")
-                    ),
-                    "via": "yfinance",
-                })
+            news = [
+                normalized
+                for item in raw_news[:10]
+                if (normalized := _normalize_yfinance_news_item(item))
+            ]
 
-            _news_cache[symbol] = {"data": news, "cached_at": datetime.now(timezone.utc)}
-            return {"symbol": symbol, "news": news, "cached": False}
-    except Exception:
-        pass
+            if news:
+                _news_cache[symbol] = {
+                    "data": news,
+                    "source": "yfinance",
+                    "cached_at": datetime.now(timezone.utc),
+                }
+                return {
+                    "symbol": symbol,
+                    "news": news,
+                    "cached": False,
+                    "source": "yfinance",
+                }
+    except Exception as exc:
+        logger.warning("YFinance news fetch failed for %s: %s", symbol, exc)
 
-    # Fallback to RSS search using the symbol as query
-    # Strip exchange suffix for better search results
-    search_term = symbol.split(".")[0]
-    rss_news = await search_rss_news(search_term)
+    company_name = await _get_company_name_for_news(symbol)
+    rss_news = await get_symbol_rss_news(symbol, company_name=company_name)
 
     if rss_news:
         for item in rss_news:
             item["via"] = "rss"
-        _news_cache[symbol] = {"data": rss_news, "cached_at": datetime.now(timezone.utc)}
+        _news_cache[symbol] = {
+            "data": rss_news,
+            "source": "rss_fallback",
+            "cached_at": datetime.now(timezone.utc),
+        }
         return {"symbol": symbol, "news": rss_news, "cached": False, "source": "rss_fallback"}
 
     return {"symbol": symbol, "news": [], "cached": False}
