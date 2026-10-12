@@ -5,15 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from .db_models import Stock
 
-# Real browser-impersonating proxy engine (TLS/JA3 fingerprinted)
-stealth_session = requests.Session(impersonate="chrome")
-
 def _fetch_basic_info(symbol: str) -> dict:
-    """Fetch basic stock info using browser impersonation to bypass cloud IP blocking."""
-    # PASS STEALTH SESSION DIRECTLY HERE!
-    ticker = yf.Ticker(symbol, session=stealth_session)
-
+    """Fetch basic stock info through Yahoo's chart endpoint."""
+    session = requests.Session(impersonate="chrome")
     try:
+        ticker = yf.Ticker(symbol, session=session)
         # Use fast_info to bypass heavy anti-scraping blocks triggered by ticker.info
         fast_info = ticker.fast_info
 
@@ -36,6 +32,8 @@ def _fetch_basic_info(symbol: str) -> dict:
             "currency": "UNKNOWN",
             "price": None
         }
+    finally:
+        session.close()
 
 
 async def get_or_create_stock(symbol: str, db: AsyncSession) -> Stock:
