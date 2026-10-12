@@ -5,20 +5,22 @@
 - 🇺🇸 English (this page)
 - 🇪🇸 [Español](README.es-ES.md)
 
-A global stock market research and watchlist platform built with FastAPI and PostgreSQL.
+A global stock-market research and watchlist app built with FastAPI and PostgreSQL.
 
-Track stocks across 14 markets, read live news, and write timestamped research notes with price snapshots — all through a clean REST API.
+Track stocks across 14 markets, browse stock-related headlines, and keep timestamped research notes with the quote captured when each note is written.
 
 **Live:** https://first-order-a3v1.onrender.com/
+
+This is a personal learning project, not a trading platform or financial advice. Quotes and headlines come from third-party sources and may be delayed, incomplete, or unavailable.
 
 ---
 
 ## What It Does
 
 - **Watchlist** — add any stock by symbol, auto-created if not in database
-- **Live prices** — fetches real-time data for any Yahoo Finance supported symbol
-- **Market news** — recent headlines per stock, with RSS fallback if primary source rate-limits
-- **Global overview** — 14 major indices fetched in parallel
+- **Latest available quotes** — fetches Yahoo Finance data for supported symbols
+- **Market news** — stock-related headlines from Yahoo Finance, with Yahoo/Google News and business RSS fallbacks
+- **Global overview** — 14 major indices, fetched with bounded concurrency
 - **Research notes** — private notes per stock with price automatically captured at creation time
 - **Auth** — JWT + Argon2 password hashing, full register/login flow
 
@@ -33,7 +35,7 @@ Track stocks across 14 markets, read live news, and write timestamped research n
 | ORM | SQLAlchemy 2.0 (Mapped / mapped_column style) |
 | Migrations | Alembic |
 | Auth | PyJWT + pwdlib (Argon2) |
-| Market Data | yfinance + feedparser (RSS fallback) |
+| Market Data | yfinance + curl_cffi + feedparser (Yahoo/Google News and RSS sources) |
 | Config | pydantic-settings |
 | Container | Docker + docker-compose |
 | Deploy | Render + UptimeRobot |
@@ -61,7 +63,7 @@ Yahoo Finance uses exchange suffixes. Here's what to use per market:
 | Netherlands | `.AS` | `ASML.AS` |
 | Canada (TSX) | `.TO` | `RY.TO`, `SU.TO` |
 
-> **Note:** SME stocks, microcaps, and recently listed companies may have incomplete data on Yahoo Finance. Large caps work reliably.
+> **Note:** SME stocks, microcaps, and recently listed companies may have incomplete data on Yahoo Finance. Yahoo may also rate-limit cloud-hosted requests; some quote fields can be unavailable.
 
 ---
 
@@ -83,9 +85,9 @@ DELETE /watchlist/{symbol}    — remove a stock
 
 ### Market (public)
 ```
-GET /market/price/{symbol}       — live price, change %, volume, 52-week range
+GET /market/price/{symbol}       — latest available quote, change %, volume, 52-week range
 GET /market/news/{symbol}        — recent headlines for a stock
-GET /market/overview             — snapshot of 14 global indices
+GET /market/overview             — latest available snapshot of 14 global indices
 GET /market/stocks/search?q=...  — search stocks in database by name or symbol
 ```
 
@@ -158,11 +160,13 @@ cp .env.example .env
 docker compose up --build
 
 # In a second terminal — run migrations and seed data
-docker compose exec api alembic upgrade head
+docker compose exec -w /app/app api alembic upgrade head
 docker compose exec api python -m app.seed_stocks
 ```
 
 Open http://localhost:8000/docs
+
+Before starting Compose, make sure `.env` defines `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` for the database container, and that `DATABASE_URL` uses the Compose hostname `db` with the same credentials and database name. These `POSTGRES_*` variables are required by `docker-compose.yml`.
 
 ### Environment Variables
 
@@ -173,7 +177,9 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 APP_NAME=First-Order
 DEBUG=True
-NEWS_API_KEY=                      # optional
+POSTGRES_USER=first_order
+POSTGRES_PASSWORD=change-this-password
+POSTGRES_DB=first_order
 ```
 
 ---
@@ -191,6 +197,7 @@ first-order/
 │   ├── dependencies.py      — JWT auth dependency, CurrentUser type alias
 │   ├── utils.py             — get_or_create_stock, country inference
 │   ├── seed_stocks.py       — initial stock data seeder
+│   ├── alembic/             — database migrations
 │   ├── services/
 │   │   └── rss_news.py      — RSS feed fetcher (news fallback)
 │   └── routers/
@@ -198,7 +205,6 @@ first-order/
 │       ├── watchlist.py     — watchlist CRUD
 │       ├── market.py        — prices, news, overview, search
 │       └── notes.py         — research notes CRUD
-├── alembic/                 — database migrations
 ├── Dockerfile
 ├── docker-compose.yml
 └── requirements.txt
@@ -212,7 +218,9 @@ first-order/
 
 **yfinance in threadpool** — yfinance is synchronous. All calls are wrapped with `asyncio.to_thread` so the event loop stays free under concurrent requests.
 
-**Parallel index fetching** — the market overview endpoint fires 14 yfinance requests simultaneously using `asyncio.gather`. Response time stays flat regardless of how many indices are added.
+**Bounded index fetching** — the market overview endpoint fetches 14 indices with at most four requests in flight at a time. Chart requests retry up to three times when Yahoo returns no data.
+
+**Market-data fallback** — quote details are requested from Yahoo Finance first. If Yahoo rejects the quote-summary request, price routes fall back to Yahoo chart/history data. Overview uses chart/history data directly. Chart fallback may not include profile fields such as sector, industry, or market cap.
 
 **In-memory caching** — prices cache for 60 seconds, news for 5 minutes, overview for 2 minutes. Prevents hammering external APIs on repeated requests.
 
@@ -220,13 +228,13 @@ first-order/
 
 **Price snapshot on notes** — when a research note is created, the current market price is captured and stored permanently. Lets you see what price you were looking at when you wrote the thesis.
 
-**RSS fallback for news** — if yfinance news is rate-limited (common on cloud provider IPs), the news endpoint falls back to RSS feeds from Reuters, BBC Business, Economic Times, and Moneycontrol.
+**RSS fallback for news** — if yfinance news is unavailable, the news endpoint tries Yahoo Finance ticker RSS and Google News RSS searches, then searches the configured BBC Business, CNBC, and Moneycontrol feeds.
 
 ---
 
 ## Known Limitations
 
-- **yfinance rate limiting** — Yahoo Finance occasionally blocks requests from cloud provider IPs. Price endpoints may return 503 and retry after a short wait. News has RSS fallback.
+- **Yahoo Finance rate limiting** — Yahoo may block or throttle requests from cloud provider IPs. Price routes use chart/history fallback, but if all providers fail the endpoint can still return an error or unavailable data. News uses RSS fallbacks.
 - **Free tier cold starts** — Render free tier spins down after 15 minutes of inactivity. UptimeRobot pings every 5 minutes to mitigate this.
 - **No real-time streaming** — prices are fetched on request, not pushed. Refresh the endpoint to get updated data.
 - **Indian SME stocks** — small/micro caps and recently listed companies may have incomplete metadata on Yahoo Finance.
@@ -246,4 +254,4 @@ first-order/
 
 Built by Ahad ([@ah4ddd](https://github.com/ah4ddd))
 
-This is my first real FastAPI portfolio project.
+This is my first real FastAPI portfolio project, built over a year of learning by doing.

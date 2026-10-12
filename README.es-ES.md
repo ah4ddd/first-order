@@ -7,20 +7,22 @@
 - 🇺🇸 [English](README.md)
 - 🇪🇸 Español (esta página)
 
-Una plataforma global de investigación y lista de seguimiento del mercado de valores construida con FastAPI y PostgreSQL.
+Una aplicación global de investigación y lista de seguimiento del mercado de valores, creada con FastAPI y PostgreSQL.
 
-Rastrea acciones en 14 mercados, lee noticias en tiempo real y escribe notas de investigación con marca de tiempo e instantáneas de precio, todo a través de una API REST limpia.
+Rastrea acciones en 14 mercados, consulta titulares relacionados y guarda notas de investigación con marca de tiempo y una instantánea del precio al crearlas.
 
-**En vivo:** https://first-order-a3v1.onrender.com/docs
+**En vivo:** https://first-order-a3v1.onrender.com/
+
+Este es un proyecto personal de aprendizaje, no una plataforma de trading ni asesoramiento financiero. Las cotizaciones y noticias dependen de proveedores externos y pueden retrasarse, estar incompletas o no estar disponibles.
 
 ---
 
 ## Qué hace
 
 - **Lista de seguimiento (Watchlist)** — agrega cualquier acción por su símbolo; se crea automáticamente si no está en la base de datos
-- **Precios en vivo** — obtiene datos en tiempo real para cualquier símbolo compatible con Yahoo Finance
-- **Noticias del mercado** — titulares recientes por acción, con respaldo RSS si la fuente principal limita las solicitudes
-- **Vista global** — 14 índices principales obtenidos en paralelo
+- **Últimas cotizaciones disponibles** — datos de Yahoo Finance para símbolos compatibles
+- **Noticias del mercado** — titulares relacionados con cada acción, con alternativas RSS de Yahoo/Google News
+- **Vista global** — 14 índices principales con concurrencia limitada
 - **Notas de investigación** — notas privadas por acción con el precio capturado automáticamente al crearlas
 - **Autenticación** — JWT + hash de contraseñas con Argon2, flujo completo de registro e inicio de sesión
 
@@ -35,7 +37,7 @@ Rastrea acciones en 14 mercados, lee noticias en tiempo real y escribe notas de 
 | ORM | SQLAlchemy 2.0 (estilo Mapped / mapped_column) |
 | Migraciones | Alembic |
 | Autenticación | PyJWT + pwdlib (Argon2) |
-| Datos del mercado | yfinance + feedparser (respaldo RSS) |
+| Datos del mercado | yfinance + curl_cffi + feedparser (Yahoo/Google News y RSS) |
 | Configuración | pydantic-settings |
 | Contenedor | Docker + docker-compose |
 | Despliegue | Render + UptimeRobot |
@@ -63,7 +65,7 @@ Yahoo Finance utiliza sufijos de bolsa. Aquí tienes qué usar por mercado:
 | Países Bajos | `.AS` | `ASML.AS` |
 | Canadá (TSX) | `.TO` | `RY.TO`, `SU.TO` |
 
-> **Nota:** Las acciones de PYMES, microcapitalización y empresas recientemente listadas pueden tener datos incompletos en Yahoo Finance. Las de gran capitalización funcionan de manera confiable.
+> **Nota:** Las acciones de PYMES, microcapitalización y empresas recién listadas pueden tener datos incompletos. Yahoo también puede limitar solicitudes desde proveedores en la nube; algunos campos pueden no estar disponibles.
 
 ---
 
@@ -85,9 +87,9 @@ DELETE /watchlist/{symbol}    — eliminar una acción
 
 ### Mercado (público)
 ```
-GET /market/price/{symbol}       — precio en vivo, cambio %, volumen, rango de 52 semanas
+GET /market/price/{symbol}       — última cotización disponible, cambio %, volumen y rango de 52 semanas
 GET /market/news/{symbol}        — titulares recientes de una acción
-GET /market/overview             — instantánea de 14 índices globales
+GET /market/overview             — instantánea más reciente disponible de 14 índices globales
 GET /market/stocks/search?q=...  — buscar acciones en la base de datos por nombre o símbolo
 ```
 
@@ -160,11 +162,13 @@ cp .env.example .env
 docker compose up --build
 
 # En una segunda terminal: ejecuta las migraciones y los datos iniciales
-docker compose exec api alembic upgrade head
+docker compose exec -w /app/app api alembic upgrade head
 docker compose exec api python -m app.seed_stocks
 ```
 
 Abre http://localhost:8000/docs
+
+Antes de iniciar Compose, comprueba que `.env` defina `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` para el contenedor de PostgreSQL. `DATABASE_URL` debe usar el nombre de host de Compose `db` y las mismas credenciales y nombre de base de datos. `docker-compose.yml` requiere las variables `POSTGRES_*`.
 
 ### Variables de Entorno
 
@@ -175,7 +179,9 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 APP_NAME=First-Order
 DEBUG=True
-NEWS_API_KEY=                      # opcional
+POSTGRES_USER=first_order
+POSTGRES_PASSWORD=change-this-password
+POSTGRES_DB=first_order
 ```
 
 ---
@@ -193,6 +199,7 @@ first-order/
 │   ├── dependencies.py      — dependencia de autenticación JWT, alias de tipo CurrentUser
 │   ├── utils.py             — get_or_create_stock, inferencia de país
 │   ├── seed_stocks.py       — sembrador de datos iniciales de acciones
+│   ├── alembic/             — migraciones de base de datos
 │   ├── services/
 │   │   └── rss_news.py      — obtentor de feeds RSS (respaldo de noticias)
 │   └── routers/
@@ -200,7 +207,6 @@ first-order/
 │       ├── watchlist.py     — CRUD de lista de seguimiento
 │       ├── market.py        — precios, noticias, vista general, búsqueda
 │       └── notes.py         — CRUD de notas de investigación
-├── alembic/                 — migraciones de base de datos
 ├── Dockerfile
 ├── docker-compose.yml
 └── requirements.txt
@@ -214,7 +220,9 @@ first-order/
 
 **yfinance en threadpool** — yfinance es síncrono. Todas las llamadas están envueltas con `asyncio.to_thread` para que el event loop permanezca libre ante solicitudes concurrentes.
 
-**Obtención paralela de índices** — el endpoint de vista global del mercado lanza 14 solicitudes de yfinance simultáneamente usando `asyncio.gather`. El tiempo de respuesta se mantiene estable sin importar cuántos índices se agreguen.
+**Obtención limitada de índices** — la vista global consulta 14 índices con un máximo de cuatro solicitudes simultáneas. Los intentos de obtener datos del gráfico se reintentan hasta tres veces si Yahoo no devuelve datos.
+
+**Alternativas para datos del mercado** — los endpoints de cotización prueban primero los detalles de Yahoo Finance y usan datos de gráfico/historial si Yahoo rechaza la solicitud. La vista global usa directamente ese historial. La alternativa puede no incluir sector, industria ni capitalización bursátil.
 
 **Caché en memoria** — los precios se almacenan en caché por 60 segundos, las noticias por 5 minutos y la vista global por 2 minutos. Evita saturar las APIs externas con solicitudes repetidas.
 
@@ -222,13 +230,13 @@ first-order/
 
 **Instantánea de precio en notas** — cuando se crea una nota de investigación, el precio de mercado actual se captura y almacena permanentemente. Te permite ver a qué precio estabas mirando cuando escribiste el análisis.
 
-**Respaldo RSS para noticias** — si las noticias de yfinance están limitadas por rate-limit (común en IPs de proveedores de nube), el endpoint de noticias recurre a feeds RSS de Reuters, BBC Business, Economic Times y Moneycontrol.
+**Respaldo RSS para noticias** — si yfinance no devuelve noticias, el endpoint prueba Yahoo Finance RSS y búsquedas de Google News RSS; después busca en los feeds configurados de BBC Business, CNBC y Moneycontrol.
 
 ---
 
 ## Limitaciones Conocidas
 
-- **Rate limiting de yfinance** — Yahoo Finance bloquea ocasionalmente solicitudes desde IPs de proveedores de nube. Los endpoints de precio pueden devolver 503 y reintentar tras una breve espera. Las noticias tienen respaldo RSS.
+- **Límites de Yahoo Finance** — Yahoo puede bloquear o limitar solicitudes desde proveedores de nube. Las cotizaciones usan datos de gráfico como alternativa, pero pueden fallar si todas las fuentes no están disponibles. Las noticias tienen alternativas RSS.
 - **Arranques en frío del plan gratuito** — el plan gratuito de Render se detiene tras 15 minutos de inactividad. UptimeRobot envía pings cada 5 minutos para mitigar esto.
 - **Sin streaming en tiempo real** — los precios se obtienen bajo demanda, no se empujan (push). Refresca el endpoint para obtener datos actualizados.
 - **Acciones de PYMES en India** — las de pequeño/micro capital y empresas recientemente listadas pueden tener metadatos incompletos en Yahoo Finance.
