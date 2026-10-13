@@ -1,10 +1,5 @@
 # First-Order 📈
 
-## 🌍 Languages
-
-- 🇺🇸 English (this page)
-- 🇪🇸 [Español](README.es-ES.md)
-
 A global stock-market research and watchlist app built with FastAPI and PostgreSQL.
 
 Track stocks across 14 markets, browse stock-related headlines, and keep timestamped research notes with the quote captured when each note is written.
@@ -212,6 +207,34 @@ first-order/
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart LR
+    User[Browser / User] -->|Page request| FastAPI[FastAPI app]
+    FastAPI -->|Serves static assets| Frontend[HTML, CSS, JavaScript]
+    Frontend -->|API request| Router[FastAPI router]
+
+    Router --> Auth[JWT auth dependency]
+    Auth -->|Protected routes| DBDependency[Async DB dependency]
+    DBDependency --> SQLAlchemy[SQLAlchemy AsyncSession]
+    SQLAlchemy --> PostgreSQL[(PostgreSQL)]
+    PostgreSQL --> SQLAlchemy
+    SQLAlchemy --> Router
+
+    Router -->|Market data request| Threadpool[asyncio.to_thread]
+    Threadpool --> Yahoo[Yahoo Finance via yfinance]
+    Yahoo -->|Quote summary unavailable| Chart[Yahoo chart/history fallback]
+    Threadpool -->|News fallback| RSS[Yahoo / Google News / business RSS]
+    Yahoo --> Router
+    Chart --> Router
+    RSS --> Router
+
+    Router -->|JSON response| Frontend
+```
+
+---
+
 ## Architecture Notes
 
 **Async throughout** — uses `AsyncSession` from SQLAlchemy 2.0 and `asyncpg` driver. Every database call is non-blocking.
@@ -238,15 +261,6 @@ first-order/
 - **Free tier cold starts** — Render free tier spins down after 15 minutes of inactivity. UptimeRobot pings every 5 minutes to mitigate this.
 - **No real-time streaming** — prices are fetched on request, not pushed. Refresh the endpoint to get updated data.
 - **Indian SME stocks** — small/micro caps and recently listed companies may have incomplete metadata on Yahoo Finance.
-
----
-
-## What's Next
-
-- [✅] Minimal frontend (dashboard, stock detail page, watchlist view)
-- [ ] Portfolio positions with P&L tracking
-- [ ] Geopolitical/macro news feed
-- [ ] AI-powered note summarization
 
 ---
 
