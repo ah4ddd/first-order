@@ -1,6 +1,7 @@
 import yfinance as yf
 from curl_cffi import requests
 import asyncio
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from .db_models import Stock
@@ -65,7 +66,16 @@ async def get_or_create_stock(symbol: str, db: AsyncSession) -> Stock:
         country=country,
     )
     db.add(new_stock)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        result = await db.execute(select(Stock).where(Stock.symbol == symbol))
+        stock = result.scalar_one_or_none()
+        if stock is None:
+            raise
+        return stock
+
     await db.refresh(new_stock)
     return new_stock
 
