@@ -1,10 +1,6 @@
 <p align="center">
   <img src="assets/asset2.png" alt="Test Banner" width="100%" />
 </p>
-<p align="center">
-  <img src="assets/asset1.png" alt="Test Banner" width="100%" />
-</p>
-
 
 A global stock-market research and watchlist app built with FastAPI and PostgreSQL.
 
@@ -13,6 +9,10 @@ Track stocks across 14 markets, browse stock-related headlines, and keep timesta
 **Live:** https://first-order-a3v1.onrender.com/
 
 This is a personal learning project, not a trading platform or financial advice. Quotes and headlines come from third-party sources and may be delayed, incomplete, or unavailable.
+
+<p align="center">
+  <img src="assets/asset1.png" alt="Test Banner" width="100%" />
+</p>
 
 ---
 
