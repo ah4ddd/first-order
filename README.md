@@ -1,4 +1,10 @@
-# First-Order 📈
+<p align="center">
+  <img src="assets/asset2.png" alt="Test Banner" width="100%" />
+</p>
+<p align="center">
+  <img src="assets/asset1.png" alt="Test Banner" width="100%" />
+</p>
+
 
 A global stock-market research and watchlist app built with FastAPI and PostgreSQL.
 
